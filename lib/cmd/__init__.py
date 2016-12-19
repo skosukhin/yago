@@ -1,6 +1,6 @@
 import importlib
 
-commands = ['gengrid']
+commands = ['gengrid', 'strip']
 
 
 def get_module(name):

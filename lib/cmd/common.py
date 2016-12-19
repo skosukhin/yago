@@ -1,4 +1,7 @@
+import os
+import sys
 import numpy as np
+import time
 
 from core.rotors import Rotor, RotorZ, RotorY
 
@@ -76,6 +79,22 @@ def generate_cartesian_grid(x_count, x_step, y_count, y_step):
                           num=y_count)
 
     return np.meshgrid(x_array, y_array)
+
+
+def copy_nc_attributes(src_var, dst_var):
+    for attr_name in src_var.ncattrs():
+        dst_var.setncattr(attr_name, src_var.getncattr(attr_name))
+
+
+def gen_hist_string(ignored):
+    if ignored:
+        tup = tuple(ignored)
+        args = [arg for arg in sys.argv[1:] if not arg.startswith(tup)]
+    else:
+        args = sys.argv[1:]
+
+    return (time.ctime(time.time()) + ': ' + os.path.basename(
+        sys.argv[0]) + ' ' + ' '.join(args))
 
 
 def _calc_cartesian_start(count, step):
