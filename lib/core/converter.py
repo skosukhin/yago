@@ -100,10 +100,10 @@ def convert_points(la, lo, converter, progress_callback=None):
     :param la: List of lists with latitudes.
     :param lo: List of lists with longitudes.
     :param converter: Converter to use for the transformations.
-    :return: Two 2D arrays with latitudes and longitudes of
-    the given points.
     :param progress_callback: Pointer to a function that is called after each
     row is processed.
+    :return: Two 2D arrays with latitudes and longitudes of
+    the given points.
     """
     res_x, res_y = \
         np.zeros((len(la), len(la[0]))), np.zeros((len(la), len(la[0])))

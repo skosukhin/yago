@@ -47,7 +47,7 @@ def cmd(args):
         field.exclude_last_lon()
     field.cut_below_parallel(args.cut_latitude)
 
-    output_ds = Dataset(args.output_file, 'w', format='NETCDF3_CLASSIC')
+    output_ds = Dataset(args.output_file, 'w')
     copy_nc_attributes(input_ds, output_ds)
 
     output_ds.createDimension(args.lat_var_name, len(field.lat_list))
@@ -90,7 +90,7 @@ def cmd(args):
     output_data_var[:] = field.data
 
     history = input_ds.history if hasattr(input_ds, 'history') else None
-    history_update = gen_hist_string(['--input-file', '--output-file'])
+    history_update = gen_hist_string()
     history = [history_update + '\n', history] if history else history_update
     output_ds.history = history
 

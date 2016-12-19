@@ -1,9 +1,13 @@
 import os
 import sys
-import numpy as np
 import time
+import numpy as np
 
-from core.rotors import Rotor, RotorZ, RotorY
+from core.converter import Converter
+from core.projections.lambert import LambertConformalProjector
+from core.projections.mercator import MercatorProjector
+from core.projections.polar_stereographic import PolarStereographicProjector
+from core.rotors import Rotor, RotorZ, RotorY, RotorX
 
 
 def parse_list_of_floats(string):
@@ -86,7 +90,7 @@ def copy_nc_attributes(src_var, dst_var):
         dst_var.setncattr(attr_name, src_var.getncattr(attr_name))
 
 
-def gen_hist_string(ignored):
+def gen_hist_string(ignored=None):
     if ignored:
         tup = tuple(ignored)
         args = [arg for arg in sys.argv[1:] if not arg.startswith(tup)]
@@ -95,6 +99,25 @@ def gen_hist_string(ignored):
 
     return (time.ctime(time.time()) + ': ' + os.path.basename(
         sys.argv[0]) + ' ' + ' '.join(args))
+
+
+def init_converter_from_proj_var(proj_var):
+    r = _decode_rotor(proj_var.rot_axes, proj_var.rot_angles_deg)
+
+    if proj_var.short_name == 'stereo':
+        p = PolarStereographicProjector(proj_var.standard_parallel,
+                                        proj_var.earth_radius)
+    elif proj_var.short_name == 'mercator':
+        p = MercatorProjector(proj_var.standard_parallel,
+                              proj_var.earth_radius)
+    elif proj_var.short_name == 'lambert':
+        p = LambertConformalProjector(proj_var.standard_parallel[0],
+                                      proj_var.standard_parallel[1],
+                                      proj_var.earth_radius)
+    else:
+        raise Exception('Unknown projection.')
+
+    return Converter(r, p)
 
 
 def _calc_cartesian_start(count, step):
@@ -108,3 +131,18 @@ def _calc_cartesian_start(count, step):
         start = (-count / 2.0 + 0.5) * step
 
     return start
+
+
+def _decode_rotor(rot_axes_ids, rot_angles_deg):
+    rotors = []
+    for i, c in enumerate(rot_axes_ids):
+        angle = rot_angles_deg[i]
+        if c == 'X':
+            rotors.append(RotorX(angle))
+        elif c == 'Y':
+            rotors.append(RotorY(angle))
+        elif c == 'Z':
+            rotors.append(RotorZ(angle))
+        else:
+            raise Exception('Unknown rotation axis ID: \'' + c + '\'.')
+    return chain_rotors(*rotors)
