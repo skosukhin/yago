@@ -13,64 +13,51 @@ description = 'projects geographical coordinates to a plane'
 def setup_parser(parser):
     parser.add_argument('--input-file', required=True)
     parser.add_argument('--grid-file', required=True)
-    parser.add_argument('--output-file', required=True)
-    parser.add_argument('--lat-var-name', required=True)
-    parser.add_argument('--lon-var-name', required=True)
 
 
 def cmd(args):
-    input_ds = Dataset(args.input_file, 'r')
-    input_lat_var = input_ds.variables[args.lat_var_name]
-    input_lat_list = input_lat_var[:]
-    input_lon_var = input_ds.variables[args.lon_var_name]
-    input_lon_list = input_lon_var[:]
+    ds = Dataset(args.input_file, 'r+')
+
+    # Check that our input file was preprocessed.
+    if (not hasattr(ds, names.ATTR_HISTORY) or
+                'arctic preproc' not in ds.getncattr(names.ATTR_HISTORY)):
+        raise Exception()
+
+    input_lat_list = ds.variables[names.DIMVAR_LAT][:]
+    input_lon_list = ds.variables[names.DIMVAR_LON][:]
 
     grid_ds = Dataset(args.grid_file, 'r')
     grid_proj_var = grid_ds.variables[names.VAR_PROJECTION]
     converter = init_converter_from_proj_var(grid_proj_var)
 
-    output_ds = Dataset(args.output_file, 'w')
-
-    output_proj_var = \
-        output_ds.createVariable(grid_proj_var.name, grid_proj_var.datatype)
-    copy_nc_attributes(grid_proj_var, output_proj_var)
-
-    output_ds.createDimension(names.DIMVAR_LAT, len(input_lat_list))
-    output_lat_var = output_ds.createVariable(names.DIMVAR_LAT,
-                                              input_lat_list.dtype,
-                                              dimensions=(names.DIMVAR_LAT,))
-    copy_nc_attributes(grid_ds.variables[names.DIMVAR_LAT],
-                       output_lat_var)
-    output_lat_var[:] = input_lat_list
-
-    output_ds.createDimension(names.DIMVAR_LON, len(input_lon_list))
-    output_lon_var = output_ds.createVariable(names.DIMVAR_LON,
-                                              input_lon_list.dtype,
-                                              dimensions=(names.DIMVAR_LON,))
-    copy_nc_attributes(grid_ds.variables[names.DIMVAR_LON],
-                       output_lon_var)
-    output_lon_var[:] = input_lon_list
-
     lo, la = np.meshgrid(input_lon_list, input_lat_list)
     xx, yy = convert_points(la, lo, converter, _progress)
 
-    output_x_var = output_ds.createVariable(names.DIMVAR_X, xx.dtype,
-                                            dimensions=(names.DIMVAR_LAT,
-                                                        names.DIMVAR_LON))
+    output_proj_var = ds.createVariable(names.VAR_PROJECTION,
+                                        grid_proj_var.dtype)
+    copy_nc_attributes(grid_proj_var, output_proj_var)
+
+    output_x_var = ds.createVariable(names.DIMVAR_X, xx.dtype,
+                                     dimensions=
+                                     (names.DIMVAR_LAT, names.DIMVAR_LON))
     copy_nc_attributes(grid_ds.variables[names.DIMVAR_X], output_x_var)
     output_x_var[:, :] = xx
 
-    output_y_var = output_ds.createVariable(names.DIMVAR_Y, yy.dtype,
-                                            dimensions=(names.DIMVAR_LAT,
-                                                        names.DIMVAR_LON))
+    output_y_var = ds.createVariable(names.DIMVAR_Y, yy.dtype,
+                                     dimensions=
+                                     (names.DIMVAR_LAT, names.DIMVAR_LON))
     copy_nc_attributes(grid_ds.variables[names.DIMVAR_Y], output_y_var)
     output_y_var[:, :] = yy
 
-    output_ds.setncattr(names.ATTR_HISTORY, gen_hist_string())
-
-    input_ds.close()
     grid_ds.close()
-    output_ds.close()
+
+    history_update = gen_hist_string()
+    history = [history_update + '\n',
+               ds.getncattr(names.ATTR_HISTORY)] if hasattr(
+        ds, names.ATTR_HISTORY) else history_update
+    ds.setncattr(names.ATTR_HISTORY, history)
+
+    ds.close()
 
 
 def _progress(row_num, row_count):
