@@ -188,7 +188,7 @@ class NetCDFSerializer(OutputSerializer):
         ds.title = self.title
 
         ds.createDimension('x', len(self.xx[0]))
-        x_var = ds.createVariable('x', 'f', dimensions=('x',))
+        x_var = ds.createVariable('x', self.xx.dtype, dimensions=('x',))
         x_var.long_name = 'x coordinate of projection'
         x_var.standard_name = 'projection_x_coordinate'
         x_var.axis = 'X'
@@ -196,8 +196,8 @@ class NetCDFSerializer(OutputSerializer):
         x_var.step = self.x_step
         x_var[:] = self.xx[0]
 
-        ds.createDimension('y', len(self.xx))
-        y_var = ds.createVariable('y', 'f', dimensions=('y',))
+        ds.createDimension('y', len(self.yy))
+        y_var = ds.createVariable('y', self.yy.dtype, dimensions=('y',))
         y_var.long_name = 'y coordinate of projection'
         y_var.standard_name = 'projection_y_coordinate'
         y_var.axis = 'Y'
@@ -218,11 +218,13 @@ class NetCDFSerializer(OutputSerializer):
         proj_var.false_easting = self.x_offset
         proj_var.false_northing = self.x_offset
 
-        lats_var = ds.createVariable('lat', 'd', dimensions=('y', 'x'))
+        lats_var = ds.createVariable('lat', self.lats.dtype,
+                                     dimensions=('y', 'x'))
         set_generic_lat_attributes(lats_var)
         lats_var[:, :] = self.lats
 
-        lons_var = ds.createVariable('lon', 'd', dimensions=('y', 'x'))
+        lons_var = ds.createVariable('lon', self.lons.dtype,
+                                     dimensions=('y', 'x'))
         set_generic_lon_attributes(lons_var)
         lons_var[:, :] = self.lons
 
