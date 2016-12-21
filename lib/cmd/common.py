@@ -90,6 +90,18 @@ def copy_nc_attributes(src_var, dst_var):
         dst_var.setncattr(attr_name, src_var.getncattr(attr_name))
 
 
+def set_generic_lat_attributes(lat_var):
+    lat_var.units = 'degrees_north'
+    lat_var.long_name = 'latitude coordinate'
+    lat_var.standard_name = 'latitude'
+
+
+def set_generic_lon_attributes(lon_var):
+    lon_var.units = 'degrees_east'
+    lon_var.long_name = 'longitude coordinate'
+    lon_var.standard_name = 'longitude'
+
+
 def gen_hist_string(ignored=None):
     if ignored:
         tup = tuple(ignored)

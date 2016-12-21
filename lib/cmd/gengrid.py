@@ -36,7 +36,8 @@ from core.projections.polar_stereographic import PolarStereographicProjector
 
 from cmd.common import parse_list_of_floats, \
     build_rotor_for_polar_stereographic, build_rotor_for_mercator, \
-    build_rotor_for_lambert, generate_cartesian_grid, gen_hist_string
+    build_rotor_for_lambert, generate_cartesian_grid, gen_hist_string, \
+    set_generic_lat_attributes, set_generic_lon_attributes
 from core.projections.lambert import LambertConformalProjector
 
 description = 'generates grids'
@@ -218,15 +219,11 @@ class NetCDFSerializer(OutputSerializer):
         proj_var.false_northing = self.x_offset
 
         lats_var = ds.createVariable('lat', 'd', dimensions=('y', 'x'))
-        lats_var.units = 'degrees_north'
-        lats_var.long_name = 'latitude coordinate'
-        lats_var.standard_name = 'latitude'
+        set_generic_lat_attributes(lats_var)
         lats_var[:, :] = self.lats
 
         lons_var = ds.createVariable('lon', 'd', dimensions=('y', 'x'))
-        lons_var.units = 'degrees_east'
-        lons_var.long_name = 'longitude coordinate'
-        lons_var.standard_name = 'longitude'
+        set_generic_lon_attributes(lons_var)
         lons_var[:, :] = self.lons
 
         ds.history = gen_hist_string()

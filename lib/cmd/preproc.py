@@ -2,7 +2,8 @@ import numpy as np
 from netCDF4 import Dataset
 
 from cmd.common import copy_nc_attributes, gen_hist_string, \
-    parse_list_of_strings
+    parse_list_of_strings, set_generic_lat_attributes, \
+    set_generic_lon_attributes
 
 description = 'applies a number of hacks to prepare input file for the ' \
               'following processing'
@@ -55,18 +56,18 @@ def cmd(args):
 
     output_ds = Dataset(args.output_file, 'w')
 
-    output_ds.createDimension(args.lat_var_name, len(output_lat_list))
-    output_lat_var = output_ds.createVariable(args.lat_var_name,
+    output_ds.createDimension('lat', len(output_lat_list))
+    output_lat_var = output_ds.createVariable('lat',
                                               input_lat_list.dtype,
-                                              dimensions=(args.lat_var_name,))
-    copy_nc_attributes(input_lat_var, output_lat_var)
+                                              dimensions=('lat',))
+    set_generic_lat_attributes(output_lat_var)
     output_lat_var[:] = output_lat_list
 
-    output_ds.createDimension(args.lon_var_name, len(output_lon_indices))
-    output_lon_var = output_ds.createVariable(args.lon_var_name,
+    output_ds.createDimension('lon', len(output_lon_indices))
+    output_lon_var = output_ds.createVariable('lon',
                                               input_lon_list.dtype,
-                                              dimensions=(args.lon_var_name,))
-    copy_nc_attributes(input_lon_var, output_lon_var)
+                                              dimensions=('lon',))
+    set_generic_lon_attributes(output_lon_var)
     output_lon_var[:] = input_lon_list[output_lon_indices]
 
     nontemp_dim_tuple = (args.lat_var_name, args.lon_var_name)
@@ -75,11 +76,11 @@ def cmd(args):
     if args.time_var_name:
         input_time_var = input_ds.variables[args.time_var_name]
         input_time_list = input_time_var[:]
-        output_ds.createDimension(args.time_var_name, len(input_time_list))
-        output_time_var = output_ds.createVariable(args.time_var_name,
+        output_ds.createDimension('time', len(input_time_list))
+        output_time_var = output_ds.createVariable('time',
                                                    input_time_list.dtype,
                                                    dimensions=(
-                                                       args.time_var_name,))
+                                                       'time',))
         copy_nc_attributes(input_time_var, output_time_var)
         output_time_var[:] = input_time_list
 
@@ -91,9 +92,11 @@ def cmd(args):
 
         if input_var.dimensions == nontemp_dim_tuple:
             output_var_data = input_var[output_lat_indices, output_lon_indices]
+            out_dims = ('lat', 'lon')
         elif temp_dim_tuple and input_var.dimensions == temp_dim_tuple:
             output_var_data = \
                 input_var[:, output_lat_indices, output_lon_indices]
+            out_dims = ('time', 'lat', 'lon')
         else:
             raise Exception()
 
@@ -103,7 +106,7 @@ def cmd(args):
 
         output_var = output_ds.createVariable(input_var_name,
                                               output_var_data.dtype,
-                                              dimensions=input_var.dimensions)
+                                              dimensions=out_dims)
         copy_nc_attributes(input_var, output_var)
         output_var[:] = output_var_data
 
