@@ -54,7 +54,6 @@ def cmd(args):
             output_lat_list = np.append(output_lat_list, [90.0])
 
     output_ds = Dataset(args.output_file, 'w')
-    copy_nc_attributes(input_ds, output_ds)
 
     output_ds.createDimension(args.lat_var_name, len(output_lat_list))
     output_lat_var = output_ds.createVariable(args.lat_var_name,
@@ -108,13 +107,12 @@ def cmd(args):
         copy_nc_attributes(input_var, output_var)
         output_var[:] = output_var_data
 
-    input_ds.close()
-
-    history = output_ds.history if hasattr(input_ds, 'history') else None
+    history = input_ds.history if hasattr(input_ds, 'history') else None
     history_update = gen_hist_string()
     history = [history_update + '\n', history] if history else history_update
     output_ds.history = history
 
+    input_ds.close()
     output_ds.close()
 
 
