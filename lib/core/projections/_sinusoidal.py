@@ -1,7 +1,9 @@
 import numpy as np
 
+from core.projections.projector import Projector
 
-class SinusoidalProjector(object):
+
+class SinusoidalProjector(Projector):
     """
     Class that links spherical lat/lon coordinates and the corresponding
     vectors with the Cartesian coordinates onto the Sinusoidal projection
@@ -15,6 +17,8 @@ class SinusoidalProjector(object):
     """
 
     short_name = 'sinusoidal'
+    long_name = 'Sinusoidal'
+    standard_name = 'sinusoidal'
 
     def __init__(self, earth_radius=6370997.0):
         """

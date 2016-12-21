@@ -16,13 +16,37 @@ class Rotor(object):
     """
 
     def __init__(self):
-        self.rot_axes_ids = []
-        self.rot_angles_deg = []
-        self.rot_matrix_to = np.array(
+        self._rot_axes_ids = ()
+        self._rot_angles_deg = ()
+        self._rot_matrix_to = np.array(
             [[1.0, 0.0, 0.0],
              [0.0, 1.0, 0.0],
              [0.0, 0.0, 1.0]])
-        self.rot_matrix_from = np.transpose(self.rot_matrix_to)
+        self._rot_matrix_from = np.transpose(self._rot_matrix_to)
+        self._rot_matrix_from.flags.writeable = False
+        self._rot_matrix_to.flags.writeable = False
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return (self._rot_axes_ids == other._rot_axes_ids and
+                    self._rot_angles_deg == other._rot_angles_deg and
+                    np.array_equal(self._rot_matrix_to, other._rot_matrix_to))
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash((self._rot_axes_ids, self._rot_angles_deg,
+                     self._rot_matrix_to.data))
+
+    @property
+    def rot_axes_ids(self):
+        return self._rot_axes_ids
+
+    @property
+    def rot_angles_deg(self):
+        return self._rot_angles_deg
 
     def convert_point(self, lat, lon):
         """
@@ -34,7 +58,7 @@ class Rotor(object):
         :return: A tuple (rot_lat, rot_lon) of the rotated lat/lon coordinates
         of the given point.
         """
-        return Rotor._rotate_point(self.rot_matrix_to, lat, lon)
+        return Rotor._rotate_point(self._rot_matrix_to, lat, lon)
 
     def restore_point(self, rot_lat, rot_lon):
         """
@@ -46,7 +70,7 @@ class Rotor(object):
         :return: A tuple (lat, lon) of the regular lat/lon coordinates of the
         given point.
         """
-        return Rotor._rotate_point(self.rot_matrix_from, rot_lat, rot_lon)
+        return Rotor._rotate_point(self._rot_matrix_from, rot_lat, rot_lon)
 
     def convert_vector(self, u, v, lat, lon, return_point=False):
         """
@@ -64,7 +88,7 @@ class Rotor(object):
         vector's origin.
         """
         return Rotor._rotate_vector(
-            self.rot_matrix_to, lat, lon, u, v, return_point
+            self._rot_matrix_to, lat, lon, u, v, return_point
         )
 
     def restore_vector(self, rot_u, rot_v, rot_lat, rot_lon,
@@ -83,9 +107,24 @@ class Rotor(object):
         result tuple is extended with the regular spherical (lat, lon)
         coordinates of the vector's origin.
         """
-        return Rotor._rotate_vector(self.rot_matrix_from, rot_lat, rot_lon,
+        return Rotor._rotate_vector(self._rot_matrix_from, rot_lat, rot_lon,
                                     rot_u,
                                     rot_v, return_point)
+
+    @staticmethod
+    def chain(*rotors):
+        result = Rotor()
+        for rotor in rotors:
+            result._rot_axes_ids = result._rot_axes_ids + rotor._rot_axes_ids
+            result._rot_angles_deg = \
+                result._rot_angles_deg + rotor._rot_angles_deg
+            result._rot_matrix_to = np.dot(
+                rotor._rot_matrix_to,
+                result._rot_matrix_to)
+        result._rot_matrix_from = np.transpose(result._rot_matrix_to)
+        result._rot_matrix_from.flags.writeable = False
+        result._rot_matrix_to.flags.writeable = False
+        return result
 
     @staticmethod
     def _rotate_point(rot_matrix, lat, lon):
@@ -152,35 +191,41 @@ class Rotor(object):
 
 class RotorX(Rotor):
     def __init__(self, angle_deg):
-        self.rot_axes_ids = ['X']
-        self.rot_angles_deg = [angle_deg]
+        self._rot_axes_ids = ('X',)
+        self._rot_angles_deg = (angle_deg,)
         c, s = cos_sin_deg(angle_deg)
-        self.rot_matrix_to = np.array(
+        self._rot_matrix_to = np.array(
             [[1, 0.0, 0.0],
              [0.0, c, -s],
              [0.0, s, c]])
-        self.rot_matrix_from = np.transpose(self.rot_matrix_to)
+        self._rot_matrix_from = np.transpose(self._rot_matrix_to)
+        self._rot_matrix_from.flags.writeable = False
+        self._rot_matrix_to.flags.writeable = False
 
 
 class RotorY(Rotor):
     def __init__(self, angle_deg):
-        self.rot_axes_ids = ['Y']
-        self.rot_angles_deg = [angle_deg]
+        self._rot_axes_ids = ('Y',)
+        self._rot_angles_deg = (angle_deg,)
         c, s = cos_sin_deg(angle_deg)
-        self.rot_matrix_to = np.array(
+        self._rot_matrix_to = np.array(
             [[c, 0.0, s],
              [0.0, 1.0, 0.0],
              [-s, 0.0, c]])
-        self.rot_matrix_from = np.transpose(self.rot_matrix_to)
+        self._rot_matrix_from = np.transpose(self._rot_matrix_to)
+        self._rot_matrix_from.flags.writeable = False
+        self._rot_matrix_to.flags.writeable = False
 
 
 class RotorZ(Rotor):
     def __init__(self, angle_deg):
-        self.rot_axes_ids = ['Z']
-        self.rot_angles_deg = [angle_deg]
+        self._rot_axes_ids = ('Z',)
+        self._rot_angles_deg = (angle_deg,)
         c, s = cos_sin_deg(angle_deg)
-        self.rot_matrix_to = np.array(
+        self._rot_matrix_to = np.array(
             [[c, -s, 0.0],
              [s, c, 0.0],
              [0.0, 0.0, 1.0]])
-        self.rot_matrix_from = np.transpose(self.rot_matrix_to)
+        self._rot_matrix_from = np.transpose(self._rot_matrix_to)
+        self._rot_matrix_from.flags.writeable = False
+        self._rot_matrix_to.flags.writeable = False

@@ -12,8 +12,27 @@ class Converter(object):
         :param rotor: An instance of the class Rotor that performs rotation.
         :param projector: An instance of the class that performs projection.
         """
-        self.rotor = rotor
-        self.projector = projector
+        self._rotor = rotor
+        self._projector = projector
+
+    @property
+    def rotor(self):
+        return self._rotor
+
+    @property
+    def projector(self):
+        return self._projector
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(tuple(sorted(self.__dict__.items())))
 
     def convert_point(self, lat, lon):
         """
@@ -23,8 +42,8 @@ class Converter(object):
         :return: A tuple (x, y) of the Cartesian coordinates of the given point
         on the projection plane.
         """
-        return self.projector.convert_point(
-            *self.rotor.convert_point(lat, lon))
+        return self._projector.convert_point(
+            *self._rotor.convert_point(lat, lon))
 
     def restore_point(self, x, y):
         """
@@ -34,7 +53,7 @@ class Converter(object):
         :return: A tuple (lat, lon) of the spherical coordinates of the given
         point.
         """
-        return self.rotor.restore_point(*self.projector.restore_point(x, y))
+        return self._rotor.restore_point(*self._projector.restore_point(x, y))
 
     def convert_vector(self, u, v, lat, lon, return_point=False):
         """
@@ -51,10 +70,10 @@ class Converter(object):
         tuple is extended with the Cartesian (x, y) coordinates of the vector's
         origin.
         """
-        rot_u, rot_v, rot_lat, rot_lon = self.rotor.convert_vector(u, v, lat,
-                                                                   lon, True)
-        return self.projector.convert_vector(rot_u, rot_v, rot_lat, rot_lon,
-                                             return_point)
+        rot_u, rot_v, rot_lat, rot_lon = self._rotor.convert_vector(u, v, lat,
+                                                                    lon, True)
+        return self._projector.convert_vector(rot_u, rot_v, rot_lat, rot_lon,
+                                              return_point)
 
     def restore_vector(self, u, v, x, y, return_point=False):
         """
@@ -71,10 +90,10 @@ class Converter(object):
         is extended with the spherical (lat, lon) coordinates of the vector's
         origin.
         """
-        rot_u, rot_v, rot_lat, rot_lon = self.projector.restore_vector(u, v, x,
-                                                                       y, True)
-        return self.rotor.restore_vector(rot_u, rot_v, rot_lat, rot_lon,
-                                         return_point)
+        rot_u, rot_v, rot_lat, rot_lon = self._projector.restore_vector(u, v, x,
+                                                                        y, True)
+        return self._rotor.restore_vector(rot_u, rot_v, rot_lat, rot_lon,
+                                          return_point)
 
 
 def restore_points(xx, yy, converter):

@@ -19,18 +19,6 @@ def parse_list_of_strings(string):
     return string.split(',')
 
 
-def chain_rotors(*rotors):
-    result = Rotor()
-    for rotor in rotors:
-        result.rot_axes_ids.extend(rotor.rot_axes_ids)
-        result.rot_angles_deg.extend(rotor.rot_angles_deg)
-        result.rot_matrix_to = np.dot(
-            rotor.rot_matrix_to,
-            result.rot_matrix_to)
-    result.rot_matrix_from = np.transpose(result.rot_matrix_to)
-    return result
-
-
 def build_rotor_for_polar_stereographic(orig_lat, orig_lon,
                                         add_angle_deg):
     """
@@ -53,7 +41,7 @@ def build_rotor_for_polar_stereographic(orig_lat, orig_lon,
     middle of the Polar stereographic projection to the North pole.
     """
 
-    return chain_rotors(
+    return Rotor.chain(
         RotorZ(180.0 - orig_lon),
         RotorY(90.0 - orig_lat),
         RotorZ(add_angle_deg))
@@ -63,7 +51,7 @@ def build_rotor_for_mercator(orig_lat, orig_lon, add_angle_deg):
     rotor_adjust_center = build_rotor_for_polar_stereographic(orig_lat,
                                                               orig_lon,
                                                               add_angle_deg)
-    return chain_rotors(rotor_adjust_center, RotorY(90.0))
+    return Rotor.chain(rotor_adjust_center, RotorY(90.0))
 
 
 def build_rotor_for_lambert(orig_lat, orig_lon, add_angle_deg):
@@ -71,7 +59,7 @@ def build_rotor_for_lambert(orig_lat, orig_lon, add_angle_deg):
                                                               orig_lon,
                                                               add_angle_deg)
 
-    return chain_rotors(rotor_adjust_center, RotorY(45.0))
+    return Rotor.chain(rotor_adjust_center, RotorY(45.0))
 
 
 def generate_cartesian_grid(x_count, x_step, y_count, y_step):
@@ -158,4 +146,4 @@ def _decode_rotor(rot_axes_ids, rot_angles_deg):
             rotors.append(RotorZ(angle))
         else:
             raise Exception('Unknown rotation axis ID: \'' + c + '\'.')
-    return chain_rotors(*rotors)
+    return Rotor.chain(*rotors)

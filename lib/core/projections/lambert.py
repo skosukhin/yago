@@ -1,9 +1,10 @@
 import numpy as np
 
 from core.common import build_2d_rotation_z_rad
+from core.projections.projector import Projector
 
 
-class LambertConformalProjector(object):
+class LambertConformalProjector(Projector):
     """
     Links spherical lat/lon coordinates and the corresponding vectors with
     Cartesian coordinates onto a Lambert conformal conic projection plane. The

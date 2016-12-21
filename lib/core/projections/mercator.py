@@ -1,7 +1,9 @@
 import numpy as np
 
+from core.projections.projector import Projector
 
-class MercatorProjector(object):
+
+class MercatorProjector(Projector):
     """
     Links spherical lat/lon coordinates and the corresponding vectors with
     Cartesian coordinates onto a Mercator projection plane. The intersection

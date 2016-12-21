@@ -1,9 +1,10 @@
 import numpy as np
 
 from core.common import build_2d_rotation_z_rad, cos_sin_deg
+from core.projections.projector import Projector
 
 
-class PolarStereographicProjector(object):
+class PolarStereographicProjector(Projector):
     """
     Links spherical lat/lon coordinates and the corresponding vectors with
     Cartesian coordinates onto a Polar stereographic projection plane. The
