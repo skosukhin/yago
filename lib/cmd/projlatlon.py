@@ -6,7 +6,7 @@ from cmd.common import init_converter_from_proj_var, copy_nc_attributes, \
     gen_hist_string
 from core.converter import convert_points
 
-description = 'maps geographical coordinates to a projection plane'
+description = 'projects geographical coordinates to a plane'
 
 
 def setup_parser(parser):
