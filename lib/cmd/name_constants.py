@@ -1,0 +1,7 @@
+DIMVAR_LAT = 'lat'
+DIMVAR_LON = 'lon'
+DIMVAR_TIME = 'time'
+DIMVAR_X = 'x'
+DIMVAR_Y = 'y'
+ATTR_HISTORY = 'history'
+VAR_PROJECTION = 'projection'

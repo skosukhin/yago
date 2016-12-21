@@ -1,6 +1,7 @@
 import numpy as np
 from netCDF4 import Dataset
 
+import cmd.name_constants as names
 from cmd.common import copy_nc_attributes, gen_hist_string, \
     parse_list_of_strings, set_generic_lat_attributes, \
     set_generic_lon_attributes
@@ -56,17 +57,17 @@ def cmd(args):
 
     output_ds = Dataset(args.output_file, 'w')
 
-    output_ds.createDimension('lat', len(output_lat_list))
-    output_lat_var = output_ds.createVariable('lat',
+    output_ds.createDimension(names.DIMVAR_LAT, len(output_lat_list))
+    output_lat_var = output_ds.createVariable(names.DIMVAR_LAT,
                                               input_lat_list.dtype,
-                                              dimensions=('lat',))
+                                              dimensions=(names.DIMVAR_LAT,))
     set_generic_lat_attributes(output_lat_var)
     output_lat_var[:] = output_lat_list
 
-    output_ds.createDimension('lon', len(output_lon_indices))
-    output_lon_var = output_ds.createVariable('lon',
+    output_ds.createDimension(names.DIMVAR_LON, len(output_lon_indices))
+    output_lon_var = output_ds.createVariable(names.DIMVAR_LON,
                                               input_lon_list.dtype,
-                                              dimensions=('lon',))
+                                              dimensions=(names.DIMVAR_LON,))
     set_generic_lon_attributes(output_lon_var)
     output_lon_var[:] = input_lon_list[output_lon_indices]
 
@@ -76,11 +77,10 @@ def cmd(args):
     if args.time_var_name:
         input_time_var = input_ds.variables[args.time_var_name]
         input_time_list = input_time_var[:]
-        output_ds.createDimension('time', len(input_time_list))
-        output_time_var = output_ds.createVariable('time',
-                                                   input_time_list.dtype,
-                                                   dimensions=(
-                                                       'time',))
+        output_ds.createDimension(names.DIMVAR_TIME, len(input_time_list))
+        output_time_var = output_ds.createVariable(
+            names.DIMVAR_TIME, input_time_list.dtype,
+            dimensions=(names.DIMVAR_TIME,))
         copy_nc_attributes(input_time_var, output_time_var)
         output_time_var[:] = input_time_list
 
@@ -92,11 +92,12 @@ def cmd(args):
 
         if input_var.dimensions == nontemp_dim_tuple:
             output_var_data = input_var[output_lat_indices, output_lon_indices]
-            out_dims = ('lat', 'lon')
+            out_dims = (names.DIMVAR_LAT, names.DIMVAR_LON)
         elif temp_dim_tuple and input_var.dimensions == temp_dim_tuple:
             output_var_data = \
                 input_var[:, output_lat_indices, output_lon_indices]
-            out_dims = ('time', 'lat', 'lon')
+            out_dims = (names.DIMVAR_TIME, names.DIMVAR_LAT,
+                        names.DIMVAR_LON)
         else:
             raise Exception()
 
@@ -110,10 +111,11 @@ def cmd(args):
         copy_nc_attributes(input_var, output_var)
         output_var[:] = output_var_data
 
-    history = input_ds.history if hasattr(input_ds, 'history') else None
     history_update = gen_hist_string()
-    history = [history_update + '\n', history] if history else history_update
-    output_ds.history = history
+    history = [history_update + '\n',
+               input_ds.getncattr(names.ATTR_HISTORY)] if hasattr(
+        input_ds, names.ATTR_HISTORY) else history_update
+    output_ds.setncattr(names.ATTR_HISTORY, history)
 
     input_ds.close()
     output_ds.close()

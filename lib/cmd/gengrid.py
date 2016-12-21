@@ -34,6 +34,7 @@ from core.converter import Converter, restore_points
 from core.projections.mercator import MercatorProjector
 from core.projections.polar_stereographic import PolarStereographicProjector
 
+import cmd.name_constants as names
 from cmd.common import parse_list_of_floats, \
     build_rotor_for_polar_stereographic, build_rotor_for_mercator, \
     build_rotor_for_lambert, generate_cartesian_grid, gen_hist_string, \
@@ -187,8 +188,9 @@ class NetCDFSerializer(OutputSerializer):
         ds = Dataset(self.filename, mode='w', format='NETCDF4')
         ds.title = self.title
 
-        ds.createDimension('x', len(self.xx[0]))
-        x_var = ds.createVariable('x', self.xx.dtype, dimensions=('x',))
+        ds.createDimension(names.DIMVAR_X, len(self.xx[0]))
+        x_var = ds.createVariable(names.DIMVAR_X, self.xx.dtype,
+                                  dimensions=(names.DIMVAR_X,))
         x_var.long_name = 'x coordinate of projection'
         x_var.standard_name = 'projection_x_coordinate'
         x_var.axis = 'X'
@@ -196,8 +198,9 @@ class NetCDFSerializer(OutputSerializer):
         x_var.step = self.x_step
         x_var[:] = self.xx[0]
 
-        ds.createDimension('y', len(self.yy))
-        y_var = ds.createVariable('y', self.yy.dtype, dimensions=('y',))
+        ds.createDimension(names.DIMVAR_Y, len(self.yy))
+        y_var = ds.createVariable(names.DIMVAR_Y, self.yy.dtype,
+                                  dimensions=(names.DIMVAR_Y,))
         y_var.long_name = 'y coordinate of projection'
         y_var.standard_name = 'projection_y_coordinate'
         y_var.axis = 'Y'
@@ -205,7 +208,7 @@ class NetCDFSerializer(OutputSerializer):
         y_var.step = self.y_step
         y_var[:] = self.yy[:, 1]
 
-        proj_var = ds.createVariable('projection', 'c')
+        proj_var = ds.createVariable(names.VAR_PROJECTION, 'c')
         proj_var.description = self.proj_description
         proj_var.grid_mapping_name = self.mapping_name
         proj_var.earth_radius = self.earth_radius
@@ -218,17 +221,21 @@ class NetCDFSerializer(OutputSerializer):
         proj_var.false_easting = self.x_offset
         proj_var.false_northing = self.x_offset
 
-        lats_var = ds.createVariable('lat', self.lats.dtype,
-                                     dimensions=('y', 'x'))
+        lats_var = ds.createVariable(names.DIMVAR_LAT, self.lats.dtype,
+                                     dimensions=(
+                                         names.DIMVAR_Y,
+                                         names.DIMVAR_X))
         set_generic_lat_attributes(lats_var)
         lats_var[:, :] = self.lats
 
-        lons_var = ds.createVariable('lon', self.lons.dtype,
-                                     dimensions=('y', 'x'))
+        lons_var = ds.createVariable(names.DIMVAR_LON, self.lons.dtype,
+                                     dimensions=(
+                                         names.DIMVAR_Y,
+                                         names.DIMVAR_X))
         set_generic_lon_attributes(lons_var)
         lons_var[:, :] = self.lons
 
-        ds.history = gen_hist_string()
+        ds.setncattr(names.ATTR_HISTORY, gen_hist_string())
 
         ds.close()
 
