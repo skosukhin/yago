@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 
+import cmd.name_constants as names
 from core.converter import Converter
 from core.projections.lambert import LambertConformalProjector
 from core.projections.mercator import MercatorProjector
@@ -91,9 +92,17 @@ def set_generic_lon_attributes(lon_var):
     lon_var.standard_name = 'longitude'
 
 
-def gen_hist_string(ignored=None):
-    if ignored:
-        tup = tuple(ignored)
+def add_or_append_history(dataset, ignored_args=None):
+    history_update = gen_hist_string(ignored_args)
+    history = [history_update + '\n',
+               dataset.getncattr(names.ATTR_HISTORY)] if hasattr(
+        dataset, names.ATTR_HISTORY) else history_update
+    dataset.setncattr(names.ATTR_HISTORY, history)
+
+
+def gen_hist_string(ignored_args=None):
+    if ignored_args:
+        tup = tuple(ignored_args)
         args = [arg for arg in sys.argv[1:] if not arg.startswith(tup)]
     else:
         args = sys.argv[1:]

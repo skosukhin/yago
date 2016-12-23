@@ -1,10 +1,11 @@
-import numpy as np
 import sys
+
+import numpy as np
 from netCDF4 import Dataset
 
 import cmd.name_constants as names
 from cmd.common import init_converter_from_proj_var, copy_nc_attributes, \
-    gen_hist_string
+    add_or_append_history
 from core.converter import convert_points
 
 description = 'projects geographical coordinates to a plane'
@@ -51,11 +52,7 @@ def cmd(args):
 
     grid_ds.close()
 
-    history_update = gen_hist_string()
-    history = [history_update + '\n',
-               ds.getncattr(names.ATTR_HISTORY)] if hasattr(
-        ds, names.ATTR_HISTORY) else history_update
-    ds.setncattr(names.ATTR_HISTORY, history)
+    add_or_append_history(ds)
 
     ds.close()
 

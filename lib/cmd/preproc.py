@@ -2,9 +2,9 @@ import numpy as np
 from netCDF4 import Dataset
 
 import cmd.name_constants as names
-from cmd.common import copy_nc_attributes, gen_hist_string, \
-    parse_list_of_strings, set_generic_lat_attributes, \
-    set_generic_lon_attributes
+from cmd.common import copy_nc_attributes, parse_list_of_strings, \
+    set_generic_lat_attributes, set_generic_lon_attributes, \
+    add_or_append_history
 
 description = 'applies a number of hacks to prepare input file for the ' \
               'following processing'
@@ -111,11 +111,7 @@ def cmd(args):
         copy_nc_attributes(input_var, output_var)
         output_var[:] = output_var_data
 
-    history_update = gen_hist_string()
-    history = [history_update + '\n',
-               input_ds.getncattr(names.ATTR_HISTORY)] if hasattr(
-        input_ds, names.ATTR_HISTORY) else history_update
-    output_ds.setncattr(names.ATTR_HISTORY, history)
+    add_or_append_history(output_ds)
 
     input_ds.close()
     output_ds.close()
