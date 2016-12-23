@@ -5,7 +5,7 @@ from netCDF4 import Dataset
 
 import cmd.name_constants as names
 from cmd.common import init_converter_from_proj_var, copy_nc_attributes, \
-    add_or_append_history
+    add_or_append_history, check_preprocessed
 from core.converter import convert_points
 
 description = 'projects geographical coordinates to a plane'
@@ -19,10 +19,7 @@ def setup_parser(parser):
 def cmd(args):
     ds = Dataset(args.input_file, 'r+')
 
-    # Check that our input file was preprocessed.
-    if (not hasattr(ds, names.ATTR_HISTORY) or
-                'arctic preproc' not in ds.getncattr(names.ATTR_HISTORY)):
-        raise Exception()
+    check_preprocessed(ds)
 
     input_lat_list = ds.variables[names.DIMVAR_LAT][:]
     input_lon_list = ds.variables[names.DIMVAR_LON][:]

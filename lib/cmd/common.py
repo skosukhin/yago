@@ -111,6 +111,12 @@ def gen_hist_string(ignored_args=None):
         sys.argv[0]) + ' ' + ' '.join(args))
 
 
+def check_preprocessed(dataset):
+    if (not hasattr(dataset, names.ATTR_HISTORY) or
+            'arctic preproc' not in dataset.getncattr(names.ATTR_HISTORY)):
+        raise Exception()
+
+
 def init_converter_from_proj_var(proj_var):
     r = _decode_rotor(proj_var.rot_axes, proj_var.rot_angles_deg)
 
