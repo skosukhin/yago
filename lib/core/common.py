@@ -20,3 +20,14 @@ def adjust_angle_180(angle):
     while angle < -180.0:
         angle += 360.0
     return angle
+
+
+def min_max(arr):
+    mi = arr[0]
+    ma = mi
+    for val in arr[1:]:
+        if val > ma:
+            ma = val
+        if val < mi:
+            mi = val
+    return mi, ma

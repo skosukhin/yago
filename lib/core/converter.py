@@ -128,10 +128,11 @@ def convert_points(la, lo, converter, progress_callback=None):
         np.zeros((len(la), len(la[0]))), np.zeros((len(la), len(la[0])))
     row_count = len(la)
     for i in range(row_count):
-        if progress_callback is not None:
+        if progress_callback:
             progress_callback(i, row_count)
         for j in range(len(la[i])):
             res_x[i, j], res_y[i, j] = \
                 converter.convert_point(la[i][j], lo[i][j])
-    progress_callback(row_count, row_count)
+    if progress_callback:
+        progress_callback(row_count, row_count)
     return res_x, res_y
