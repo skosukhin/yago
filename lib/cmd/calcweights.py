@@ -8,8 +8,7 @@ import cmd.name_constants as names
 from cmd.common import check_preprocessed, init_converter_from_proj_var, \
     copy_nc_attributes, add_or_append_history
 from core.converter import convert_points
-from core.interpolation import distribute_among_quadrilaterals, RegularGrid, \
-    calc_weights
+from core.interpolation import RegularGrid, calc_weights
 
 description = 'calculates weights for the following interpolation'
 
@@ -60,8 +59,8 @@ def cmd(args):
                        grid_y_var[0], grid_ds.dimensions[names.DIMVAR_Y].size,
                        grid_y_var.step)
 
-    quad_indices = distribute_among_quadrilaterals(
-        input_xx, input_yy, args.assume_lon_cycle, grid, _progress)
+    quad_indices, weights = calc_weights(input_xx, input_yy,
+                                         args.assume_lon_cycle, grid, _progress)
 
     output_ds = Dataset(args.output_file, 'w')
 
@@ -96,8 +95,6 @@ def cmd(args):
                                                            names.DIM_DUO,
                                                            names.DIM_QUAD))
     output_quad_var[:] = quad_indices
-
-    weights = calc_weights(input_xx, input_yy, quad_indices, grid, _progress)
 
     output_weight_var = output_ds.createVariable(names.VAR_WEIGHTS,
                                                  weights.dtype,
