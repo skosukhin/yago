@@ -20,6 +20,10 @@ def parse_list_of_strings(string):
     return string.split(',')
 
 
+def var_list_parser(string):
+    pass
+
+
 def build_rotor_for_polar_stereographic(orig_lat, orig_lon,
                                         add_angle_deg):
     """
