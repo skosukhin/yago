@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.ma import MaskedArray
 
 from core.common import min_max
 
@@ -94,6 +95,22 @@ def calc_weights(quad_xx, quad_yy, xx_cycled, regular_grid,
         progress_callback(row_count, row_count)
 
     return quad_indices, weights
+
+
+def apply_weights(input_field, quad_indices, weights, dtype=None):
+    result = np.ma.masked_all(weights.shape[:-1],
+                              dtype=dtype if dtype is not None
+                              else weights.dtype)
+
+    for i in xrange(weights.shape[0]):
+        for j in xrange(weights.shape[1]):
+            if quad_indices[i, j, 0, 0] >= 0:
+                result[i, j] = np.dot(
+                    input_field[quad_indices[i, j, 0, :],
+                                quad_indices[i, j, 1, :]],
+                    weights[i, j, :])
+
+    return result
 
 
 def point_inside_poly(p_x, p_y, v_xx, v_yy):
