@@ -83,6 +83,22 @@ def cmd(args):
     copy_nc_attributes(grid_y_var, output_y_var)
     output_y_var[:] = grid_y_var[:]
 
+    grid_lat_var = grid_ds.variables[names.DIMVAR_LAT]
+    output_lat_var = output_ds.createVariable(names.DIMVAR_LAT,
+                                              grid_lat_var.dtype,
+                                              dimensions=(names.DIMVAR_Y,
+                                                          names.DIMVAR_X))
+    copy_nc_attributes(grid_lat_var, output_lat_var)
+    output_lat_var[:] = grid_lat_var[:]
+
+    grid_lon_var = grid_ds.variables[names.DIMVAR_LON]
+    output_lon_var = output_ds.createVariable(names.DIMVAR_LON,
+                                              grid_lon_var.dtype,
+                                              dimensions=(names.DIMVAR_Y,
+                                                          names.DIMVAR_X))
+    copy_nc_attributes(grid_lon_var, output_lon_var)
+    output_lon_var[:] = grid_lon_var[:]
+
     grid_ds.close()
 
     output_ds.createDimension(names.DIM_DUO, 2)

@@ -55,6 +55,22 @@ def cmd(args):
     copy_nc_attributes(weight_y_var, output_y_var)
     output_y_var[:] = weight_y_var[:]
 
+    weight_lat_var = weight_ds.variables[names.DIMVAR_LAT]
+    output_lat_var = output_ds.createVariable(names.DIMVAR_LAT,
+                                              weight_lat_var.dtype,
+                                              dimensions=(names.DIMVAR_Y,
+                                                          names.DIMVAR_X))
+    copy_nc_attributes(weight_lat_var, output_lat_var)
+    output_lat_var[:] = weight_lat_var[:]
+
+    weight_lon_var = weight_ds.variables[names.DIMVAR_LON]
+    output_lon_var = output_ds.createVariable(names.DIMVAR_LON,
+                                              weight_lon_var.dtype,
+                                              dimensions=(names.DIMVAR_Y,
+                                                          names.DIMVAR_X))
+    copy_nc_attributes(weight_lon_var, output_lon_var)
+    output_lon_var[:] = weight_lon_var[:]
+
     weight_var = weight_ds.variables[names.VAR_WEIGHTS]
     input_nontemp_dim_tuple = (names.DIMVAR_LAT, names.DIMVAR_LON)
     output_nontemp_dim_tuple = weight_var.dimensions[:-1]
