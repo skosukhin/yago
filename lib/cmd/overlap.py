@@ -2,7 +2,7 @@ import numpy as np
 import shutil
 from netCDF4 import Dataset
 
-from cmd.common import parse_list_of_strings
+from cmd.common import parse_list_of_strings, add_or_append_history
 
 description = 'copies the first file in the list and fills masked values of a' \
               'given field with values from fields of the following files'
@@ -42,5 +42,7 @@ def cmd(args):
         input_ds.close()
 
     output_var[:] = output_var_data[:]
+
+    add_or_append_history(output_ds)
 
     output_ds.close()

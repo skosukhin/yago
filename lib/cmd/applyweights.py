@@ -2,7 +2,8 @@ import numpy as np
 from netCDF4 import Dataset
 
 import cmd.name_constants as names
-from cmd.common import parse_list_of_strings, copy_nc_attributes
+from cmd.common import parse_list_of_strings, copy_nc_attributes, \
+    add_or_append_history
 from core.interpolation import apply_weights
 
 description = 'applies weights to perform interpolation'
@@ -62,16 +63,16 @@ def cmd(args):
     input_temp_dim_tuple, output_temp_dim_tuple = None, None
     if (names.DIMVAR_TIME in input_ds.variables and
             names.DIMVAR_TIME in input_ds.dimensions):
-        input_temp_dim_tuple =\
-            (names.DIMVAR_TIME, ) + input_nontemp_dim_tuple
-        output_temp_dim_tuple = (names.DIMVAR_TIME, ) + output_nontemp_dim_tuple
+        input_temp_dim_tuple = \
+            (names.DIMVAR_TIME,) + input_nontemp_dim_tuple
+        output_temp_dim_tuple = (names.DIMVAR_TIME,) + output_nontemp_dim_tuple
 
         input_time_var = input_ds.variables[names.DIMVAR_TIME]
         output_ds.createDimension(names.DIMVAR_TIME, input_time_var.size)
-        output_time_var = input_ds.createVariable(names.DIMVAR_TIME,
-                                                  input_time_var.dtype,
-                                                  dimensions=(
-                                                      names.DIMVAR_TIME,))
+        output_time_var = output_ds.createVariable(names.DIMVAR_TIME,
+                                                   input_time_var.dtype,
+                                                   dimensions=(
+                                                       names.DIMVAR_TIME,))
         copy_nc_attributes(input_time_var, output_time_var)
         output_time_var[:] = input_time_var[:]
 
@@ -109,4 +110,6 @@ def cmd(args):
             raise Exception()
 
     input_ds.close()
+
+    add_or_append_history(output_ds)
     output_ds.close()
