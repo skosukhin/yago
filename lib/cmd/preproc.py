@@ -18,11 +18,11 @@ def setup_parser(parser):
     parser.add_argument('--time-var-name')
     parser.add_argument('--data-var-names', type=parse_list_of_strings,
                         required=True)
-    parser.add_argument('--ignore-last-lat', type=bool, required=True)
-    parser.add_argument('--ignore-last-lon', type=bool, required=True)
-    parser.add_argument('--add-north-pole', type=bool, required=True)
+    parser.add_argument('--ignore-last-lat', type=bool, default=False)
+    parser.add_argument('--ignore-last-lon', type=bool, default=False)
+    parser.add_argument('--add-north-pole', type=bool, default=False)
     parser.add_argument('--cut-latitude', type=np.float64,
-                        default=np.float64(50.0))
+                        default=np.float64(0.0))
 
 
 def cmd(args):

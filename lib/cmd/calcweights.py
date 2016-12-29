@@ -17,7 +17,7 @@ def setup_parser(parser):
     parser.add_argument('--input-file', required=True)
     parser.add_argument('--output-file', required=True)
     parser.add_argument('--grid-file', required=True)
-    parser.add_argument('--assume-lon-cycle', type=bool, required=True)
+    parser.add_argument('--assume-lon-cycle', type=bool, default=False)
 
 
 def cmd(args):

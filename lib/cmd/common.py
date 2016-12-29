@@ -17,11 +17,7 @@ def parse_list_of_floats(string):
 
 
 def parse_list_of_strings(string):
-    return string.split(',')
-
-
-def var_list_parser(string):
-    pass
+    return string.split(';')
 
 
 def build_rotor_for_polar_stereographic(orig_lat, orig_lon,
