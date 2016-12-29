@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from netCDF4 import Dataset
 
@@ -101,11 +102,14 @@ def cmd(args):
             output_data_var[0, :] = output_data
 
             for time_idx in xrange(1, input_data_var.shape[0]):
+                _progress(time_idx, input_data_var.shape[0])
                 output_data = apply_weights(input_data_var[time_idx, :],
                                             quad_indices,
                                             weights,
                                             output_data_type)
                 output_data_var[time_idx, :] = output_data
+
+            _progress(input_data_var.shape[0], input_data_var.shape[0])
         else:
             raise Exception()
 
@@ -113,3 +117,8 @@ def cmd(args):
 
     add_or_append_history(output_ds)
     output_ds.close()
+
+
+def _progress(row_num, row_count):
+    print '%.2f%%' % (float(row_num) / float(row_count) * 100.0)
+    sys.stdout.flush()
