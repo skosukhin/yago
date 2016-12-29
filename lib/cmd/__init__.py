@@ -1,7 +1,7 @@
 import importlib
 
 commands = ['gengrid', 'preproc', 'projlatlon', 'calcweights', 'applyweights',
-            'overlap']
+            'overlap', 'append']
 
 
 def get_module(name):
