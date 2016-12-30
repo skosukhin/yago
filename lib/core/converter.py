@@ -136,3 +136,14 @@ def convert_points(la, lo, converter, progress_callback=None):
     if progress_callback:
         progress_callback(row_count, row_count)
     return res_x, res_y
+
+
+def convert_vectors(la, lo, uu, vv, converter):
+    rot_uu, rot_vv = np.zeros(la.shape), np.zeros(la.shape)
+    row_count = la.shape[0]
+    for i in xrange(row_count):
+        for j in xrange(la.shape[1]):
+            rot_uu[i, j], rot_vv[i, j] = \
+                converter.convert_vector(uu[i, j], vv[i, j], la[i, j], lo[i, j])
+    return rot_uu, rot_vv
+
