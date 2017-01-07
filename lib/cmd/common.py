@@ -80,6 +80,20 @@ def copy_nc_attributes(src_var, dst_var):
         dst_var.setncattr(attr_name, src_var.getncattr(attr_name))
 
 
+def copy_dim_var(src_ds, dst_ds, dim_var_name, return_data=False):
+    src_dim = src_ds.dimensions[dim_var_name]
+    src_var = src_ds.variables[dim_var_name]
+    dst_ds.createDimension(dim_var_name, src_dim.size)
+    dst_var = dst_ds.createVariable(dim_var_name, src_var.dtype,
+                                    dimensions=(dim_var_name,))
+    src_var_list = src_var[:]
+    dst_var[:] = src_var_list
+    copy_nc_attributes(src_var, dst_var)
+
+    if return_data:
+        return src_var_list
+
+
 def set_generic_lat_attributes(lat_var):
     lat_var.units = 'degrees_north'
     lat_var.long_name = 'latitude coordinate'
@@ -93,11 +107,19 @@ def set_generic_lon_attributes(lon_var):
 
 
 def add_or_append_history(dataset, ignored_args=None):
-    history_update = gen_hist_string(ignored_args)
-    history = [history_update + '\n',
-               dataset.getncattr(names.ATTR_HISTORY)] if hasattr(
-        dataset, names.ATTR_HISTORY) else history_update
+    add_history(dataset, get_history(dataset), ignored_args)
+
+
+def add_history(dataset, history_suffix=None, ignored_args=None):
+    history = gen_hist_string(ignored_args)
+    if history_suffix:
+        history = [history + '\n', history_suffix]
     dataset.setncattr(names.ATTR_HISTORY, history)
+
+
+def get_history(dataset):
+    if hasattr(dataset, names.ATTR_HISTORY):
+        return dataset.getncattr(names.ATTR_HISTORY)
 
 
 def gen_hist_string(ignored_args=None):

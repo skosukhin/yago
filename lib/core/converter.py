@@ -90,8 +90,10 @@ class Converter(object):
         is extended with the spherical (lat, lon) coordinates of the vector's
         origin.
         """
-        rot_u, rot_v, rot_lat, rot_lon = self._projector.restore_vector(u, v, x,
-                                                                        y, True)
+        rot_u, rot_v, rot_lat, rot_lon = self._projector.restore_vector(u, v,
+                                                                        x,
+                                                                        y,
+                                                                        True)
         return self._rotor.restore_vector(rot_u, rot_v, rot_lat, rot_lon,
                                           return_point)
 
@@ -144,6 +146,8 @@ def convert_vectors(la, lo, uu, vv, converter):
     for i in xrange(row_count):
         for j in xrange(la.shape[1]):
             rot_uu[i, j], rot_vv[i, j] = \
-                converter.convert_vector(uu[i, j], vv[i, j], la[i, j], lo[i, j])
+                converter.convert_vector(uu[i, j],
+                                         vv[i, j],
+                                         la[i, j],
+                                         lo[i, j])
     return rot_uu, rot_vv
-

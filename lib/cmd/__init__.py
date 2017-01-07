@@ -1,7 +1,7 @@
 import importlib
 
-commands = ['gengrid', 'preproc', 'projlatlon', 'calcweights', 'applyweights',
-            'overlap', 'append', 'projvec']
+commands = ['gengrid', 'preproc', 'project', 'calcweights', 'applyweights',
+            'overlap', 'append']
 
 
 def get_module(name):

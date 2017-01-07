@@ -20,7 +20,6 @@ def setup_parser(parser):
                         required=True)
     parser.add_argument('--ignore-last-lat', type=bool, default=False)
     parser.add_argument('--ignore-last-lon', type=bool, default=False)
-    parser.add_argument('--add-north-pole', type=bool, default=False)
     parser.add_argument('--cut-latitude', type=np.float64,
                         default=np.float64(0.0))
 
@@ -43,17 +42,7 @@ def cmd(args):
     if args.ignore_last_lon:
         output_lon_indices = output_lon_indices[:-1]
 
-    prepend_north_pole = None
-    if args.add_north_pole:
-        prepend_north_pole = (input_lat_list[output_lat_indices[0]] >
-                              input_lat_list[output_lat_indices[1]])
-
     output_lat_list = input_lat_list[output_lat_indices]
-    if args.add_north_pole:
-        if prepend_north_pole:
-            output_lat_list = np.append([90.0], output_lat_list)
-        else:
-            output_lat_list = np.append(output_lat_list, [90.0])
 
     output_ds = Dataset(args.output_file, 'w')
 
@@ -101,10 +90,6 @@ def cmd(args):
         else:
             raise Exception()
 
-        if args.add_north_pole:
-            output_var_data = _add_north_pole(output_var_data,
-                                              prepend_north_pole)
-
         output_var = output_ds.createVariable(input_var_name,
                                               output_var_data.dtype,
                                               dimensions=out_dims)
@@ -115,21 +100,3 @@ def cmd(args):
 
     input_ds.close()
     output_ds.close()
-
-
-def _add_north_pole(data, prepend):
-    dim_num = len(data.shape)
-    if dim_num == 2:
-        if prepend:
-            north_pole_value = data.dtype.type(np.mean(data[0]))
-            return np.append([np.repeat(north_pole_value, len(data[0]))], data,
-                             axis=0)
-        else:
-            north_pole_value = data.dtype.type(np.mean(data[-1]))
-            return np.append(data,
-                             [np.repeat(north_pole_value, len(data[-1]))],
-                             axis=0)
-    elif dim_num == 3:
-        return np.stack(_add_north_pole(dim2, prepend) for dim2 in data[:])
-    else:
-        raise Exception()
