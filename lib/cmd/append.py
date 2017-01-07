@@ -1,7 +1,8 @@
 import shutil
 
 from netCDF4 import Dataset
-from cmd.common import parse_list_of_strings, add_or_append_history
+from cmd.common import parse_list_of_strings, add_or_append_history, \
+    copy_nc_attributes
 
 description = 'copies input file and adds variables from another one to it'
 
@@ -27,6 +28,7 @@ def cmd(args):
             appended_var_name, appended_var.dtype,
             dimensions=appended_var.dimensions)
         output_var[:] = appended_var[:]
+        copy_nc_attributes(appended_var, output_var)
 
     add_or_append_history(output_ds)
 
