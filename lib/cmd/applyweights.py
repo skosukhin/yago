@@ -98,6 +98,7 @@ def cmd(args):
     weight_ds.close()
 
     for i, data_var_name in enumerate(args.data_var_names):
+        print data_var_name
         input_data_var = input_ds.variables[data_var_name]
         output_data_type = data_var_types[i]
 
@@ -109,7 +110,8 @@ def cmd(args):
                 dimensions=output_nontemp_dim_tuple)
             output_data_var[:] = output_data
         elif (input_temp_dim_tuple and
-              input_data_var.dimensions == input_temp_dim_tuple):
+                input_data_var.dimensions == input_temp_dim_tuple):
+            _progress(0, input_data_var.shape[0])
             output_data = apply_weights(input_data_var[0, :], quad_indices,
                                         weights, output_data_type)
             output_data_var = output_ds.createVariable(
