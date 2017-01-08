@@ -103,19 +103,40 @@ def cmd(args):
 
     for var_name in scalar_vars:
         print var_name
-        _progress(0, 1)
         input_var = input_ds.variables[var_name]
         if (input_var.dimensions != nontemp_dim_tuple and
-                input_var.dimensions != temp_dim_tuple):
+                    input_var.dimensions != temp_dim_tuple):
             raise Exception()
         output_var = output_ds.createVariable(var_name, input_var.dtype,
                                               dimensions=input_var.dimensions)
 
-        if args.add_north_pole:
-            output_var[:] = _add_north_pole(input_var[:], prepend_north_pole)
+        copy_nc_attributes(input_var, output_var)
+
+        total_fields = \
+            (1
+             if input_var.dimensions == nontemp_dim_tuple
+             else input_var.shape[0])
+
+        if input_var.dimensions == nontemp_dim_tuple:
+            _progress(0, total_fields)
+            if args.add_north_pole:
+                output_var[:] = _add_north_pole(input_var[:],
+                                                prepend_north_pole)
+            else:
+                output_var[:] = input_var[:]
+            _progress(total_fields, total_fields)
+        elif input_var.dimensions == temp_dim_tuple:
+            for time_idx in xrange(0, total_fields):
+                _progress(time_idx, total_fields)
+                if args.add_north_pole:
+                    output_var[time_idx, :] = _add_north_pole(
+                        input_var[time_idx, :], prepend_north_pole)
+                else:
+                    output_var[time_idx, :] = input_var[:]
         else:
-            output_var[:] = input_var[:]
-        _progress(1, 1)
+            raise Exception()
+
+        _progress(total_fields, total_fields)
 
     if len(vector_vars) > 0:
         print 'Processing vector fields:'
@@ -195,15 +216,12 @@ def _add_north_pole(data, prepend):
     dim_num = len(data.shape)
     if dim_num == 2:
         if prepend:
-            north_pole_value = data.dtype.type(np.mean(data[0]))
-            return np.append([np.repeat(north_pole_value, len(data[0]))], data,
-                             axis=0)
+            north_pole_value = data.dtype.type(np.ma.mean(data[0]))
+            return np.ma.append(
+                [np.ma.repeat(north_pole_value, len(data[0]))], data, axis=0)
         else:
-            north_pole_value = data.dtype.type(np.mean(data[-1]))
-            return np.append(data,
-                             [np.repeat(north_pole_value, len(data[-1]))],
-                             axis=0)
-    elif dim_num == 3:
-        return np.stack(_add_north_pole(dim2, prepend) for dim2 in data[:])
+            north_pole_value = data.dtype.type(np.ma.mean(data[-1]))
+            return np.ma.append(
+                data, [np.ma.repeat(north_pole_value, len(data[-1]))], axis=0)
     else:
         raise Exception()

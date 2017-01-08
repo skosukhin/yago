@@ -105,10 +105,10 @@ def apply_weights(input_field, quad_indices, weights, dtype=None):
     for i in xrange(weights.shape[0]):
         for j in xrange(weights.shape[1]):
             if quad_indices[i, j, 0, 0] >= 0:
-                result[i, j] = np.dot(
-                    input_field[quad_indices[i, j, 0, :],
-                                quad_indices[i, j, 1, :]],
-                    weights[i, j, :])
+                input_data = input_field[quad_indices[i, j, 0, :],
+                                         quad_indices[i, j, 1, :]]
+                if not np.ma.is_masked(input_data):
+                    result[i, j] = np.dot(input_data, weights[i, j, :])
 
     return result
 
