@@ -1,31 +1,51 @@
 import numpy as np
 
-from core.projections.projector import Projector
+from core.projections.projection import Projection
+from core.rotors import Rotor, RotorZ, RotorY
 
 
-class SinusoidalProjector(Projector):
+class SinusoidalProjection(Projection):
     """
     Class that links spherical lat/lon coordinates and the corresponding
     vectors with the Cartesian coordinates onto the Sinusoidal projection
     plane. The intersection of the equator and the Greenwich Meridian is always
     in the center of the projection. The X-axis is aligned from the center to
     the eastern hemisphere along the equator and the Y-axis is aligned from the
-    same origin to the northern hemisphere along the Greenwich Meridian. If it
-    is necessary to make a projection with another point in its origin, then
-    this class should be used in conjunction with the corresponding instance of
-    the class Rotor by means of the instance of the class RotorProjector.
+    same origin to the northern hemisphere along the Greenwich Meridian.
     """
 
     short_name = 'sinusoidal'
     long_name = 'Sinusoidal'
     standard_name = 'sinusoidal'
 
-    def __init__(self, earth_radius=6370997.0):
+    def __init__(self, earth_radius):
         """
         The constructor of the class.
         :param earth_radius: Earth radius (in meters).
         """
         self.earth_radius = earth_radius
+
+    @classmethod
+    def init(cls, earth_radius, true_lats):
+        return SinusoidalProjection(earth_radius)
+
+    def build_rotor(self, orig_lat, orig_lon, add_angle_deg):
+        """
+        The function generates an instance of class Rotor to be used in
+        conjunction with Sinusoidal projection.
+        :param orig_lat: Latitude (in degrees) of the origin point of the
+        projection.
+        :param orig_lon: Latitude (in degrees) of the origin point of the
+        projection.
+        :param add_angle_deg: Angle (in degrees) of the optional rotation
+        around Z-axis.
+        :return: Returns an instance of class Rotor that rotates the
+        geographical coordinate system to move the origin point to the
+        intersection of the equator and the Greenwich Meridian.
+        """
+
+        return Rotor.chain(RotorZ(180.0 - orig_lon), RotorY(90.0 - orig_lat),
+                           RotorZ(add_angle_deg), RotorY(90.0))
 
     def convert_point(self, la, lo):
         """

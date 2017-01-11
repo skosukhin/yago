@@ -1,10 +1,11 @@
 import numpy as np
 
-from core.common import build_2d_rotation_z_rad
-from core.projections.projector import Projector
+from core.common import build_2d_rotation_z_rad, QUARTER_PI
+from core.projections.projection import Projection
+from core.rotors import Rotor, RotorZ, RotorY
 
 
-class LambertConformalProjector(Projector):
+class LambertConformalProjection(Projection):
     """
     Links spherical lat/lon coordinates and the corresponding vectors with
     Cartesian coordinates onto a Lambert conformal conic projection plane. The
@@ -15,14 +16,13 @@ class LambertConformalProjector(Projector):
     Meridian (both of the given directions are true only in the vicinity of the
     point of origin).
     """
-    pi_quarter = np.pi / 4.0
-    half_pi = np.pi / 2.0
-    center_lat = 45.0
+
+    _CENTER_LAT = 45.0
     short_name = 'lambert'
     long_name = 'Lambert conformal conic'
     standard_name = 'lambert_conformal_conic'
 
-    def __init__(self, true_lat1=45.0, true_lat2=45.0, earth_radius=6370997.0):
+    def __init__(self, true_lat1, true_lat2, earth_radius):
         """
         The constructor of the class.
         :param true_lat1: The southern latitude (in degrees) of true scale
@@ -38,15 +38,44 @@ class LambertConformalProjector(Projector):
         if np.fabs(true_lat1 - true_lat2) < np.finfo(float).eps:
             self.n = np.sin(phi1_rad)
         else:
-            self.n = np.log(np.cos(phi1_rad) / np.cos(phi2_rad)) / (
-                np.log(np.tan(self.pi_quarter + phi2_rad / 2.0) / np.tan(
-                    self.pi_quarter + phi1_rad / 2.0)))
+            self.n = \
+                (np.log(np.cos(phi1_rad) / np.cos(phi2_rad)) /
+                 (np.log(np.tan(QUARTER_PI + phi2_rad / 2.0) /
+                         np.tan(QUARTER_PI + phi1_rad / 2.0))))
         self.n_sign = np.sign(self.n)
-        self.f = np.cos(phi1_rad) * np.power(
-            np.tan(self.pi_quarter + phi1_rad / 2.0), self.n) / self.n
-        self.rho0 = self.f * np.power(
-            1.0 / np.tan(self.pi_quarter + np.radians(self.center_lat) / 2.0),
-            self.n)
+        self.f = \
+            (np.cos(phi1_rad) *
+             np.power(np.tan(QUARTER_PI + phi1_rad / 2.0), self.n) / self.n)
+        self.rho0 = \
+            (self.f *
+             np.power(1.0 /
+                      np.tan(QUARTER_PI +
+                             np.radians(
+                                 LambertConformalProjection.CENTER_LAT) / 2.0),
+                      self.n))
+
+    @classmethod
+    def init(cls, earth_radius, true_lats):
+        return LambertConformalProjection(true_lats[0], true_lats[1],
+                                          earth_radius)
+
+    def build_rotor(self, orig_lat, orig_lon, add_angle_deg):
+        """
+        The function generates an instance of class Rotor to be used in
+        conjunction with Lambert projection.
+        :param orig_lat: Latitude (in degrees) of the origin point of the
+        projection.
+        :param orig_lon: Latitude (in degrees) of the origin point of the
+        projection.
+        :param add_angle_deg: Angle (in degrees) of the optional rotation
+        around Z-axis.
+        :return: Returns an instance of class Rotor that rotates the
+        geographical coordinate system to move the origin point to the
+        intersection of the 45th northern parallel and the Greenwich Meridian.
+        """
+
+        return Rotor.chain(RotorZ(180.0 - orig_lon), RotorY(90.0 - orig_lat),
+                           RotorZ(add_angle_deg), RotorY(45.0))
 
     def convert_point(self, la, lo):
         """
@@ -124,18 +153,20 @@ class LambertConformalProjector(Projector):
             return rot_u, rot_v
 
     def _convert_point_unit(self, la, lo):
-        rho = self.f * np.power(
-            1.0 / np.tan(self.pi_quarter + np.radians(la) / 2.0), self.n)
+        rho = \
+            self.f * \
+            np.power(1.0 / np.tan(QUARTER_PI + np.radians(la) / 2.0), self.n)
         nlo = self.n * np.radians(lo)
         x = rho * np.sin(nlo)
         y = self.rho0 - rho * np.cos(nlo)
         return x, y
 
     def _restore_point_unit(self, x, y):
-        rho = self.n_sign * np.sqrt(
-            np.power(x, 2.0) + np.power(self.rho0 - y, 2.0))
+        rho = \
+            self.n_sign * \
+            np.sqrt(np.power(x, 2.0) + np.power(self.rho0 - y, 2.0))
         theta = np.arctan(x / (self.rho0 - y))
-        la = 2.0 * np.arctan(
-            np.power(self.f / rho, 1.0 / self.n)) - np.pi / 2.0
+        la = \
+            2.0 * np.arctan(np.power(self.f / rho, 1.0 / self.n)) - np.pi / 2.0
         lo = theta / self.n
         return np.degrees(la), np.degrees(lo)

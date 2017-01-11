@@ -1,9 +1,11 @@
 import numpy as np
 
-from core.projections.projector import Projector
+from core.common import QUARTER_PI, HALF_PI
+from core.projections.projection import Projection
+from core.rotors import Rotor, RotorZ, RotorY
 
 
-class MercatorProjector(Projector):
+class MercatorProjection(Projection):
     """
     Links spherical lat/lon coordinates and the corresponding vectors with
     Cartesian coordinates onto a Mercator projection plane. The intersection
@@ -12,13 +14,12 @@ class MercatorProjector(Projector):
     along the equator and the Y-axis is aligned from the same origin to the
     northern hemisphere along the Greenwich Meridian.
     """
-    pi_quarter = np.pi / 4.0
-    half_pi = np.pi / 2.0
+
     short_name = 'mercator'
     long_name = 'Mercator'
     standard_name = 'mercator'
 
-    def __init__(self, true_lat=0.0, earth_radius=6370997.0):
+    def __init__(self, true_lat, earth_radius):
         """
         The constructor of the class.
         :param true_lat: Latitude of true scale (in degrees).
@@ -26,6 +27,28 @@ class MercatorProjector(Projector):
         """
         self.k = np.cos(np.radians(true_lat))
         self.earth_radius = earth_radius
+
+    @classmethod
+    def init(cls, earth_radius, true_lats):
+        return MercatorProjection(true_lats[0], earth_radius)
+
+    def build_rotor(self, orig_lat, orig_lon, add_angle_deg):
+        """
+        The function generates an instance of class Rotor to be used in
+        conjunction with Mercator projection.
+        :param orig_lat: Latitude (in degrees) of the origin point of the
+        projection.
+        :param orig_lon: Latitude (in degrees) of the origin point of the
+        projection.
+        :param add_angle_deg: Angle (in degrees) of the optional rotation
+        around Z-axis.
+        :return: Returns an instance of class Rotor that rotates the
+        geographical coordinate system to move the origin point to the
+        intersection of the equator and the Greenwich Meridian.
+        """
+
+        return Rotor.chain(RotorZ(180.0 - orig_lon), RotorY(90.0 - orig_lat),
+                           RotorZ(add_angle_deg), RotorY(90.0))
 
     def convert_point(self, la, lo):
         """
@@ -37,7 +60,7 @@ class MercatorProjector(Projector):
         """
         x = self.k * self.earth_radius * np.radians(lo)
         y = self.k * self.earth_radius * np.log(
-            np.tan(self.pi_quarter + np.radians(la) / 2.0))
+            np.tan(QUARTER_PI + np.radians(la) / 2.0))
         return x, y
 
     def restore_point(self, x, y):
@@ -50,7 +73,7 @@ class MercatorProjector(Projector):
         """
         lo = np.degrees(x / (self.earth_radius * self.k))
         la = np.degrees(2.0 * np.arctan(
-            np.exp(y / (self.earth_radius * self.k))) - self.half_pi)
+            np.exp(y / (self.earth_radius * self.k))) - HALF_PI)
         return la, lo
 
     def convert_vector(self, u, v, la, lo, return_point=False):

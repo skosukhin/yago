@@ -6,9 +6,7 @@ import numpy as np
 
 import cmd.name_constants as names
 from core.converter import Converter
-from core.projections.lambert import LambertConformalProjector
-from core.projections.mercator import MercatorProjector
-from core.projections.polar_stereographic import PolarStereographicProjector
+from core.projections import projections
 from core.rotors import Rotor, RotorZ, RotorY, RotorX
 
 
@@ -20,53 +18,22 @@ def parse_list_of_strings(string):
     return string.split(';')
 
 
-def build_rotor_for_polar_stereographic(orig_lat, orig_lon,
-                                        add_angle_deg):
-    """
-    The function generates an instance of the class Rotor to be used in
-    conjunction with the Polar stereographic projection. The obtained instance
-    is the result of three consecutive rotations: around Z-axis, around Y-axis,
-    and again around Z-axis. The first two rotations shift the given point to
-    the North Pole by rotating the coordinate system. The second rotation
-    around Z-axis (the last one among the three) is optional to help users to
-    adjust the orientation of the coordinate grid to account either for the
-    features of the following projection procedure or for the plotting needs.
-    :param orig_lat: Real latitude (in degrees) of the point that is supposed
-    to be in the center of the projection.
-    :param orig_lon: Real longitude (in degrees) of the point that is
-    supposed to be in the center of the projection.
-    :param add_angle_deg: Angle (in degrees) of the last rotation around the
-    Z-axis.
-    :return: Returns an instance of the class Rotor that rotates the regular
-    lat/lon coordinate system to move a point that a user wants to be in the
-    middle of the Polar stereographic projection to the North pole.
-    """
-
-    return Rotor.chain(
-        RotorZ(180.0 - orig_lon),
-        RotorY(90.0 - orig_lat),
-        RotorZ(add_angle_deg))
+def parse_pos_intp(string):
+    result = np.intp(string)
+    if result <= 0:
+        raise Exception('Argument must be positive.')
+    return result
 
 
-def build_rotor_for_mercator(orig_lat, orig_lon, add_angle_deg):
-    rotor_adjust_center = build_rotor_for_polar_stereographic(orig_lat,
-                                                              orig_lon,
-                                                              add_angle_deg)
-    return Rotor.chain(rotor_adjust_center, RotorY(90.0))
+def parse_pos_float(string):
+    result = np.float64(string)
+    if result <= 0:
+        raise Exception('Argument must be positive.')
+    return result
 
 
-def build_rotor_for_lambert(orig_lat, orig_lon, add_angle_deg):
-    rotor_adjust_center = build_rotor_for_polar_stereographic(orig_lat,
-                                                              orig_lon,
-                                                              add_angle_deg)
-
-    return Rotor.chain(rotor_adjust_center, RotorY(45.0))
-
-
-def generate_cartesian_grid(x_count, x_step, y_count, y_step):
-    x_start = _calc_cartesian_start(x_count, x_step)
-    y_start = _calc_cartesian_start(y_count, y_step)
-
+def generate_cartesian_grid(x_start, x_count, x_step,
+                            y_start, y_count, y_step):
     x_array = np.linspace(x_start, x_start + (x_count - 1) * x_step,
                           num=x_count)
     y_array = np.linspace(y_start, y_start + (y_count - 1) * y_step,
@@ -135,40 +102,31 @@ def gen_hist_string(ignored_args=None):
 
 def check_preprocessed(dataset):
     if (not hasattr(dataset, names.ATTR_HISTORY) or
-            'arctic preproc' not in dataset.getncattr(names.ATTR_HISTORY)):
+                'arctic preproc' not in dataset.getncattr(names.ATTR_HISTORY)):
         raise Exception()
 
 
 def init_converter_from_proj_var(proj_var):
     r = _decode_rotor(proj_var.rot_axes, proj_var.rot_angles_deg)
-
-    if proj_var.short_name == 'stereo':
-        p = PolarStereographicProjector(proj_var.standard_parallel,
-                                        proj_var.earth_radius)
-    elif proj_var.short_name == 'mercator':
-        p = MercatorProjector(proj_var.standard_parallel,
-                              proj_var.earth_radius)
-    elif proj_var.short_name == 'lambert':
-        p = LambertConformalProjector(proj_var.standard_parallel[0],
-                                      proj_var.standard_parallel[1],
-                                      proj_var.earth_radius)
-    else:
-        raise Exception('Unknown projection.')
+    p = projections[proj_var.short_name].init(proj_var.earth_radius,
+                                              proj_var.standard_parallel)
 
     return Converter(r, p)
 
 
-def _calc_cartesian_start(count, step):
-    # If the number of grid points along the axis is odd than we put the
-    # central point to the origin of the coordinate system.
-    if count % 2 == 1:
-        start = -(count - 1) / 2.0 * step
-    # If the number of grid points is even than we put the origin of the
-    # coordinate system between two central points of the grid.
-    else:
-        start = (-count / 2.0 + 0.5) * step
+def init_converter_from_args(args):
+    p = projections[args.proj_name].init(args.earth_radius,
+                                         args.true_scale_lats)
+    r = p.build_rotor(args.orig_lat, args.orig_lon, args.adjust_angle)
 
-    return start
+    return Converter(r, p)
+
+
+def create_dir_for_file(filename):
+    try:
+        os.makedirs(os.path.dirname(filename))
+    except:
+        pass
 
 
 def _decode_rotor(rot_axes_ids, rot_angles_deg):

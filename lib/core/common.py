@@ -1,5 +1,8 @@
 import numpy as np
 
+HALF_PI = np.pi / 2.0
+QUARTER_PI = np.pi / 4.0
+
 
 def cos_sin_rad(angle_rad):
     return np.array([np.cos(angle_rad), np.sin(angle_rad)])

@@ -1,10 +1,11 @@
 import numpy as np
 
-from core.common import build_2d_rotation_z_rad, cos_sin_deg
-from core.projections.projector import Projector
+from core.common import build_2d_rotation_z_rad, cos_sin_deg, HALF_PI
+from core.projections.projection import Projection
+from core.rotors import Rotor, RotorZ, RotorY
 
 
-class PolarStereographicProjector(Projector):
+class PolarStereographicProjection(Projection):
     """
     Links spherical lat/lon coordinates and the corresponding vectors with
     Cartesian coordinates onto a Polar stereographic projection plane. The
@@ -12,12 +13,12 @@ class PolarStereographicProjector(Projector):
     from the North Pole to the South Pole over the 90th meridian and the Y-axis
     is aligned from the same origin to the South Pole over the 180th meridian.
     """
-    half_pi = np.pi / 2.0
+
     short_name = 'stereo'
     long_name = 'Polar stereographic'
     standard_name = 'polar_stereographic'
 
-    def __init__(self, true_lat=90.0, earth_radius=6370997.0):
+    def __init__(self, true_lat, earth_radius):
         """
         The constructor of the class.
         :param true_lat: Latitude of true scale (in degrees).
@@ -25,6 +26,35 @@ class PolarStereographicProjector(Projector):
         """
         self.z = np.sin(np.radians(true_lat)) + 1.0
         self.earth_radius = earth_radius
+
+    @classmethod
+    def init(cls, earth_radius, true_lats):
+        return PolarStereographicProjection(true_lats[0], earth_radius)
+
+    def build_rotor(self, orig_lat, orig_lon, add_angle_deg):
+        """
+        The function generates an instance of class Rotor to be used in
+        conjunction with Polar stereographic projection. The obtained
+        instance is the result of three consecutive rotations: around Z-axis,
+        around Y-axis, and again around Z-axis. The first two rotations shift
+        the given point to the North Pole by rotating the coordinate system.
+        The second rotation around Z-axis (the last one among the three) is
+        optional to help users to adjust the orientation of the coordinate
+        grid to account either for the features of the following projection
+        procedure or for the plotting needs.
+        :param orig_lat: Latitude (in degrees) of the origin point of the
+        projection.
+        :param orig_lon: Latitude (in degrees) of the origin point of the
+        projection.
+        :param add_angle_deg: Angle (in degrees) of the optional rotation
+        around Z-axis.
+        :return: Returns an instance of class Rotor that rotates the
+        geographical coordinate system to move the origin point to the North
+        Pole.
+        """
+
+        return Rotor.chain(RotorZ(180.0 - orig_lon), RotorY(90.0 - orig_lat),
+                           RotorZ(add_angle_deg))
 
     def convert_point(self, la, lo):
         """
@@ -50,7 +80,7 @@ class PolarStereographicProjector(Projector):
         point.
         """
         r = np.sqrt(x * x + y * y) / self.earth_radius
-        la = np.degrees(self.half_pi - 2.0 * np.arctan(r / self.z))
+        la = np.degrees(HALF_PI - 2.0 * np.arctan(r / self.z))
         lo = np.degrees(np.arctan2(x, -y))
         return la, lo
 

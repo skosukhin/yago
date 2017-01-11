@@ -1,8 +1,10 @@
 """
-Recommended parameters:
+Example parameters:
 Common:
+--x-start=-2695000.0
 --x-count=386
 --x-step=14000.0
+--y-start=-2331000.0
 --y-count=334
 --y-step=14000.0
 --orig-lat=88.9899731326
@@ -21,68 +23,113 @@ For Lambert:
 --proj-name=lambert
 --true-scale-lats=33.9172241958,54.4707286812
 
-gengrid --x-count=386 --x-step=14000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=stereo --true-scale-lats=71.6577131288 --output-file=grid.nc --output-format=nc
-gengrid --x-count=386 --x-step=14000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=mercator --true-scale-lats=10.6352550282 --output-file=grid.nc  --output-format=nc
-gengrid --x-count=386 --x-step=14000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=lambert --true-scale-lats=33.9172241958,54.4707286812 --output-file=grid.nc  --output-format=nc
+Example commands:
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=stereo --true-scale-lats=71.6577131288 --output-file=grid.nc --output-format=nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=mercator --true-scale-lats=10.6352550282 --output-file=grid.nc  --output-format=nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=lambert --true-scale-lats=33.9172241958,54.4707286812 --output-file=grid.nc  --output-format=nc
 """
 
-import os
 import re
 
 import numpy as np
-from core.converter import Converter, restore_points
-from core.projections.mercator import MercatorProjector
-from core.projections.polar_stereographic import PolarStereographicProjector
 
 import cmd.name_constants as names
-from cmd.common import parse_list_of_floats, \
-    build_rotor_for_polar_stereographic, build_rotor_for_mercator, \
-    build_rotor_for_lambert, generate_cartesian_grid, \
+from cmd.common import parse_list_of_floats, generate_cartesian_grid, \
     set_generic_lat_attributes, set_generic_lon_attributes, \
-    add_or_append_history
-from core.projections.lambert import LambertConformalProjector
+    add_or_append_history, parse_pos_intp, parse_pos_float, \
+    init_converter_from_args, create_dir_for_file
+from core.converter import restore_points
+from core.projections import projections
 
 description = 'generates grids'
 
+_DEFAULT_EARTH_RADIUS = np.float64(6370997.0)
+
 
 def setup_parser(parser):
-    parser.add_argument('--proj-name', required=True)
-    parser.add_argument('--output-file', required=True)
-    parser.add_argument('--output-format', default='txt')
-    parser.add_argument('--x-count', type=np.intp, required=True)
-    parser.add_argument('--x-step', type=np.float64, required=True)
-    parser.add_argument('--x-offset', type=np.float64, default=np.float64(0))
-    parser.add_argument('--y-count', type=np.intp, required=True)
-    parser.add_argument('--y-step', type=np.float64, required=True)
-    parser.add_argument('--y-offset', type=np.float64, default=np.float64(0))
-    parser.add_argument('--orig-lat', type=np.float64, required=True)
-    parser.add_argument('--orig-lon', type=np.float64, required=True)
-    parser.add_argument('--adjust-angle', type=np.float64, required=True)
-    parser.add_argument('--true-scale-lats', type=parse_list_of_floats,
-                        required=True)
-    parser.add_argument('--earth-radius', type=np.float64,
-                        default=np.float64(6370997.0))
+    mandatory_args = parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('--proj-name',
+                                help='name of projection to be used for grid '
+                                     'generation',
+                                choices=projections.keys(), required=True)
+    mandatory_args.add_argument('--true-scale-lats',
+                                help='semicolon-separated list of '
+                                     'projection\'s latitudes (in degrees) of '
+                                     'true scale',
+                                type=parse_list_of_floats, required=True)
+    mandatory_args.add_argument('--orig-lat',
+                                help='latitude (in degrees) of the projection '
+                                     'center',
+                                type=np.float64, required=True)
+    mandatory_args.add_argument('--orig-lon',
+                                help='longitude (in degrees) of the '
+                                     'projection center',
+                                type=np.float64, required=True)
+    mandatory_args.add_argument('--x-start',
+                                help='x-coordinate (in meters) of the first '
+                                     'grid point',
+                                type=np.float64, required=True)
+    mandatory_args.add_argument('--x-count',
+                                help='number of grid points along x-axis',
+                                type=parse_pos_intp, required=True)
+    mandatory_args.add_argument('--x-step',
+                                help='distance (in meters) between two '
+                                     'consecutive grid points along x-axis',
+                                type=parse_pos_float, required=True)
+    mandatory_args.add_argument('--y-start',
+                                help='y-coordinate (in meters) of the first '
+                                     'grid point',
+                                type=np.float64, required=True)
+    mandatory_args.add_argument('--y-count',
+                                help='number of grid points along y-axis',
+                                type=parse_pos_intp, required=True)
+    mandatory_args.add_argument('--y-step',
+                                help='distance (in meters) between two '
+                                     'consecutive grid points along y-axis',
+                                type=parse_pos_float, required=True)
+    mandatory_args.add_argument('--output-file',
+                                help='output filename',
+                                required=True)
+
+    parser.add_argument('--earth-radius',
+                        help='earth radius (in meters) to be used for '
+                             'projection (default: %(default)s)',
+                        type=np.float64, default=_DEFAULT_EARTH_RADIUS)
+    parser.add_argument('--adjust-angle',
+                        help='optional angle of rotation for grid adjustment '
+                             '(default: %(default)s)',
+                        type=np.float64, default=np.float64(0.0))
+    parser.add_argument('--x-offset',
+                        help='value added to all x-coordinates '
+                             '(false easting)',
+                        type=np.float64, default=np.float64(0))
+    parser.add_argument('--y-offset',
+                        help='value added to all y-coordinates '
+                             '(false northing)',
+                        type=np.float64, default=np.float64(0))
+    parser.add_argument('--output-format',
+                        help='output file format (default: %(default)s)',
+                        choices=['txt', 'nc'], default='txt')
 
 
 def cmd(args):
-    converter = get_converter_from_args(args)
-    xx, yy = generate_cartesian_grid(args.x_count, args.x_step, args.y_count,
-                                     args.y_step)
-    xx += args.x_offset
-    yy += args.y_offset
+    converter = init_converter_from_args(args)
+    xx, yy = generate_cartesian_grid(args.x_start, args.x_count, args.x_step,
+                                     args.y_start, args.y_count, args.y_step)
+
     lats, lons = restore_points(xx, yy, converter)
 
     serializer = get_serializer_from_args(args)
     serializer.title = 'Geographic coordinates of points of a regular grid ' \
                        'defined in Cartesian coordinates on a ' + \
-                       converter.projector.long_name + ' projection plane.'
+                       converter.projection.long_name + ' projection plane.'
     serializer.xx = xx
     serializer.x_step = args.x_step
     serializer.yy = yy
     serializer.y_step = args.y_step
     serializer.proj_description = \
         re.sub(r'\s{2,}', ' ',
-               converter.projector.__doc__.replace('\n', ' ')).strip() + \
+               converter.projection.__doc__.replace('\n', ' ')).strip() + \
         ' ' \
         'To build a projection with a given point (origin_lat;origin_lon) ' \
         'in its origin, series of rotations of the spherical coordinate ' \
@@ -94,7 +141,7 @@ def cmd(args):
         'equator and the Greenwich Meridian; Y-axis points to the ' \
         'intersection of the equator and the 90th eastern meridian; Z-axis ' \
         'points to the North Pole.'
-    serializer.mapping_name = (converter.projector.standard_name +
+    serializer.mapping_name = (converter.projection.standard_name +
                                '+rotated_latitude_longitude')
     serializer.earth_radius = args.earth_radius
     serializer.orig_lat = args.orig_lat
@@ -102,7 +149,7 @@ def cmd(args):
     serializer.standard_parallels = args.true_scale_lats
     serializer.rot_axes_ids = converter.rotor.rot_axes_ids
     serializer.rot_angles_deg = converter.rotor.rot_angles_deg
-    serializer.proj_short_name = converter.projector.short_name
+    serializer.proj_short_name = converter.projection.short_name
     serializer.lats = lats
     serializer.lons = lons
     serializer.x_offset = args.x_offset
@@ -111,37 +158,12 @@ def cmd(args):
     serializer.save()
 
 
-def get_converter_from_args(args):
-    if args.proj_name == 'stereo':
-        converter = Converter(
-            build_rotor_for_polar_stereographic(args.orig_lat, args.orig_lon,
-                                                args.adjust_angle),
-            PolarStereographicProjector(args.true_scale_lats[0],
-                                        args.earth_radius))
-    elif args.proj_name == 'mercator':
-        converter = Converter(
-            build_rotor_for_mercator(args.orig_lat, args.orig_lon,
-                                     args.adjust_angle),
-            MercatorProjector(args.true_scale_lats[0], args.earth_radius))
-    elif args.proj_name == 'lambert':
-        converter = Converter(
-            build_rotor_for_lambert(args.orig_lat, args.orig_lon,
-                                    args.adjust_angle),
-            LambertConformalProjector(args.true_scale_lats[0],
-                                      args.true_scale_lats[1],
-                                      args.earth_radius))
-    else:
-        raise Exception('Unknown projection: \'' + args.proj_name + '\'.')
-
-    return converter
-
-
 def get_serializer_from_args(args):
     format_lower = args.output_format.lower()
 
-    if format_lower == 'txt' or format_lower == 'text':
+    if format_lower == 'txt':
         return TextSerializer(args.output_file)
-    elif format_lower == 'nc' or format_lower == 'netcdf':
+    elif format_lower == 'nc':
         return NetCDFSerializer(args.output_file)
     else:
         raise Exception(
@@ -171,20 +193,13 @@ class OutputSerializer(object):
     def save(self):
         pass
 
-    @staticmethod
-    def _create_dir_for_file(filename):
-        try:
-            os.makedirs(os.path.dirname(filename))
-        except:
-            pass
-
 
 class NetCDFSerializer(OutputSerializer):
     def __init__(self, filename):
         self.filename = filename
 
     def save(self):
-        self._create_dir_for_file(self.filename)
+        create_dir_for_file(self.filename)
         from netCDF4 import Dataset
         ds = Dataset(self.filename, mode='w', format='NETCDF4')
         ds.title = self.title
@@ -197,7 +212,7 @@ class NetCDFSerializer(OutputSerializer):
         x_var.axis = 'X'
         x_var.units = 'm'
         x_var.step = self.x_step
-        x_var[:] = self.xx[0]
+        x_var[:] = self.xx[0] + self.x_offset
 
         ds.createDimension(names.DIMVAR_Y, len(self.yy))
         y_var = ds.createVariable(names.DIMVAR_Y, self.yy.dtype,
@@ -207,7 +222,7 @@ class NetCDFSerializer(OutputSerializer):
         y_var.axis = 'Y'
         y_var.units = 'm'
         y_var.step = self.y_step
-        y_var[:] = self.yy[:, 1]
+        y_var[:] = self.yy[:, 1] + self.y_offset
 
         proj_var = ds.createVariable(names.VAR_PROJECTION, 'c')
         proj_var.description = self.proj_description
@@ -249,7 +264,7 @@ class TextSerializer(OutputSerializer):
     _MAX_WRAP_WIDTH = 79
 
     def save(self):
-        self._create_dir_for_file(self.filename)
+        create_dir_for_file(self.filename)
         with open(self.filename, 'w') as f:
             f.writelines(TextSerializer._comment('Title:'))
             f.writelines(
@@ -295,12 +310,12 @@ class TextSerializer(OutputSerializer):
             f.writelines(TextSerializer._comment(
                 'X coordinates of projection (step %s m)' %
                 TextSerializer._float_to_string(self.x_step)))
-            TextSerializer._write_matrix(self.xx, f)
+            TextSerializer._write_matrix(self.xx + self.x_offset, f)
 
             f.writelines(TextSerializer._comment(
                 'Y coordinates of projection (step %s m)' %
                 TextSerializer._float_to_string(self.x_step)))
-            TextSerializer._write_matrix(self.yy, f)
+            TextSerializer._write_matrix(self.yy + self.y_offset, f)
 
             f.writelines(TextSerializer._comment(
                 'Latitude coordinates (degrees north)' % self.x_step))

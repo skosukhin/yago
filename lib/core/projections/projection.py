@@ -1,5 +1,5 @@
 
-class Projector(object):
+class Projection(object):
     short_name = None
     long_name = None
     standard_name = None
@@ -14,6 +14,13 @@ class Projector(object):
 
     def __hash__(self):
         return hash(tuple(sorted(self.__dict__.items())))
+
+    @classmethod
+    def init(cls, earth_radius, true_lats):
+        raise NotImplementedError()
+
+    def build_rotor(self, orig_lat, orig_lon, add_angle_deg):
+        raise NotImplementedError()
 
     def convert_point(self, la, lo):
         raise NotImplementedError()
