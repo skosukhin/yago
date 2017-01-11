@@ -102,7 +102,7 @@ def gen_hist_string(ignored_args=None):
 
 def check_preprocessed(dataset):
     if (not hasattr(dataset, names.ATTR_HISTORY) or
-                'arctic preproc' not in dataset.getncattr(names.ATTR_HISTORY)):
+            'arctic preproc' not in dataset.getncattr(names.ATTR_HISTORY)):
         raise Exception()
 
 

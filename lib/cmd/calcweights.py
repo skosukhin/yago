@@ -60,7 +60,8 @@ def cmd(args):
                        grid_y_var.step)
 
     quad_indices, weights = calc_weights(input_xx, input_yy,
-                                         args.assume_lon_cycle, grid, _progress)
+                                         args.assume_lon_cycle, grid,
+                                         _progress)
 
     output_ds = Dataset(args.output_file, 'w')
 

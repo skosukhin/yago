@@ -105,7 +105,7 @@ def cmd(args):
         print var_name
         input_var = input_ds.variables[var_name]
         if (input_var.dimensions != nontemp_dim_tuple and
-                    input_var.dimensions != temp_dim_tuple):
+                input_var.dimensions != temp_dim_tuple):
             raise Exception()
         output_var = output_ds.createVariable(var_name, input_var.dtype,
                                               dimensions=input_var.dimensions)

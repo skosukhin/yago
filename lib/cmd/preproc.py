@@ -6,7 +6,7 @@ from netCDF4 import Dataset
 import cmd.name_constants as names
 from cmd.common import copy_nc_attributes, parse_list_of_strings, \
     set_generic_lat_attributes, set_generic_lon_attributes, \
-    add_or_append_history, add_history, get_history
+    add_history, get_history
 
 description = 'applies a number of hacks to prepare input file for the ' \
               'following processing'
