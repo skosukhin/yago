@@ -2,17 +2,18 @@ import numpy as np
 import shutil
 from netCDF4 import Dataset
 
-from cmd.common import parse_list_of_strings, add_or_append_history
+from cmd.common import add_or_append_history, ListParser
 
 description = 'copies the first file in the list and fills masked values of a' \
               'given field with values from fields of the following files'
 
 
 def setup_parser(parser):
-    parser.add_argument('--input-files', type=parse_list_of_strings,
+    list_parser = ListParser()
+    parser.add_argument('--input-files', type=list_parser,
                         required=True)
     parser.add_argument('--output-file', required=True)
-    parser.add_argument('--data-var-names', type=parse_list_of_strings,
+    parser.add_argument('--data-var-names', type=list_parser,
                         required=True)
 
 

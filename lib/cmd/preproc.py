@@ -4,9 +4,8 @@ import numpy as np
 from netCDF4 import Dataset
 
 import cmd.name_constants as names
-from cmd.common import copy_nc_attributes, parse_list_of_strings, \
-    set_generic_lat_attributes, set_generic_lon_attributes, \
-    add_history, get_history
+from cmd.common import copy_nc_attributes, set_generic_lat_attributes, \
+    set_generic_lon_attributes, add_history, get_history, ListParser
 
 description = 'applies a number of hacks to prepare input file for the ' \
               'following processing'
@@ -18,7 +17,7 @@ def setup_parser(parser):
     parser.add_argument('--lat-var-name', required=True)
     parser.add_argument('--lon-var-name', required=True)
     parser.add_argument('--time-var-name')
-    parser.add_argument('--data-var-names', type=parse_list_of_strings,
+    parser.add_argument('--data-var-names', type=ListParser(),
                         required=True)
     parser.add_argument('--ignore-last-lat', type=bool, default=False)
     parser.add_argument('--ignore-last-lon', type=bool, default=False)

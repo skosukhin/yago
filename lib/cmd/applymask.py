@@ -5,7 +5,7 @@ import numpy as np
 from netCDF4 import Dataset
 
 import cmd.name_constants as names
-from cmd.common import parse_list_of_strings, add_or_append_history
+from cmd.common import add_or_append_history, ListParser
 
 description = 'adjusts fields to a given mask'
 
@@ -15,12 +15,13 @@ _DEFAULT_MAX_ITER_COUNT = 1000
 
 
 def setup_parser(parser):
+    list_parser = ListParser()
     parser.add_argument('--input-file', required=True)
     parser.add_argument('--data-var-names', required=True,
-                        type=parse_list_of_strings)
+                        type=list_parser)
     parser.add_argument('--mask-file', required=True)
     parser.add_argument('--output-file', required=True)
-    parser.add_argument('--backup-values', type=parse_list_of_strings)
+    parser.add_argument('--backup-values', type=list_parser)
     parser.add_argument('--max-iter-count', type=np.intp,
                         default=_DEFAULT_MAX_ITER_COUNT)
 

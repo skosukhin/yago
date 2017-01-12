@@ -10,12 +10,18 @@ from core.projections import projections
 from core.rotors import Rotor, RotorZ, RotorY, RotorX
 
 
-def parse_list_of_floats(string):
-    return np.array([np.float64(val) for val in parse_list_of_strings(string)])
+class ListParser(object):
+    def __init__(self, dtype=None, separator=';'):
+        self.separator = separator
+        self.dtype = dtype
 
+    def __call__(self, *args, **kwargs):
+        str_arr = args[0].split(self.separator)
 
-def parse_list_of_strings(string):
-    return string.split(';')
+        if self.dtype:
+            return map(self.dtype, str_arr)
+        else:
+            return str_arr
 
 
 def parse_pos_intp(string):

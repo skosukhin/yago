@@ -5,18 +5,17 @@ from netCDF4 import Dataset
 
 import cmd.name_constants as names
 from cmd.common import init_converter_from_proj_var, copy_nc_attributes, \
-    check_preprocessed, parse_list_of_strings, \
-    get_history, add_history, copy_dim_var
+    check_preprocessed, get_history, add_history, copy_dim_var, ListParser
 from core.converter import convert_points, convert_vectors
 
-description = 'projects geographical coordinates and corresponding vector ' \
+description = 'projects geographical coordinates and corresponding ' \
               'fields to a plane'
 
 
 def setup_parser(parser):
     parser.add_argument('--input-file', required=True)
     parser.add_argument('--output-file', required=True)
-    parser.add_argument('--data-var-names', type=parse_list_of_strings)
+    parser.add_argument('--data-var-names', type=ListParser())
     parser.add_argument('--add-north-pole', type=bool, default=False)
     parser.add_argument('--grid-file', required=True)
 

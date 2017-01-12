@@ -3,8 +3,7 @@ import numpy as np
 from netCDF4 import Dataset
 
 import cmd.name_constants as names
-from cmd.common import parse_list_of_strings, copy_nc_attributes, \
-    add_or_append_history
+from cmd.common import copy_nc_attributes, add_or_append_history, ListParser
 from core.interpolation import apply_weights
 
 description = 'applies weights to perform interpolation'
@@ -14,9 +13,10 @@ def setup_parser(parser):
     parser.add_argument('--input-file', required=True)
     parser.add_argument('--output-file', required=True)
     parser.add_argument('--weight-file', required=True)
-    parser.add_argument('--data-var-names', type=parse_list_of_strings,
+    list_parser = ListParser()
+    parser.add_argument('--data-var-names', type=list_parser,
                         required=True)
-    parser.add_argument('--data-var-types', type=parse_list_of_strings)
+    parser.add_argument('--data-var-types', type=list_parser)
 
 
 def cmd(args):

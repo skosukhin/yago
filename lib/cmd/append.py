@@ -1,8 +1,7 @@
 import shutil
 
 from netCDF4 import Dataset
-from cmd.common import parse_list_of_strings, add_or_append_history, \
-    copy_nc_attributes
+from cmd.common import add_or_append_history, copy_nc_attributes, ListParser
 
 description = 'copies input file and adds variables from another one to it'
 
@@ -12,7 +11,7 @@ def setup_parser(parser):
     parser.add_argument('--output-file', required=True)
     parser.add_argument('--appended-file', required=True)
 
-    parser.add_argument('--appended-var-names', type=parse_list_of_strings,
+    parser.add_argument('--appended-var-names', type=ListParser(),
                         required=True)
 
 

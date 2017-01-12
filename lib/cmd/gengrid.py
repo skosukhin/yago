@@ -34,10 +34,10 @@ import re
 import numpy as np
 
 import cmd.name_constants as names
-from cmd.common import parse_list_of_floats, generate_cartesian_grid, \
+from cmd.common import generate_cartesian_grid, \
     set_generic_lat_attributes, set_generic_lon_attributes, \
     add_or_append_history, parse_pos_intp, parse_pos_float, \
-    init_converter_from_args, create_dir_for_file
+    init_converter_from_args, create_dir_for_file, ListParser
 from core.converter import restore_points
 from core.projections import projections
 
@@ -56,7 +56,7 @@ def setup_parser(parser):
                                 help='semicolon-separated list of '
                                      'projection\'s latitudes (in degrees) of '
                                      'true scale',
-                                type=parse_list_of_floats, required=True)
+                                type=ListParser(np.float64), required=True)
     mandatory_args.add_argument('--orig-lat',
                                 help='latitude (in degrees) of the projection '
                                      'center',
