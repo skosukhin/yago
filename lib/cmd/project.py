@@ -13,11 +13,41 @@ description = 'projects geographical coordinates and corresponding ' \
 
 
 def setup_parser(parser):
-    parser.add_argument('--input-file', required=True)
-    parser.add_argument('--output-file', required=True)
-    parser.add_argument('--data-var-names', type=ListParser())
-    parser.add_argument('--add-north-pole', type=bool, default=False)
-    parser.add_argument('--grid-file', required=True)
+    mandatory_args = parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('--input-file',
+                                help='name of netcdf file that contains data '
+                                     'that need to be projected',
+                                required=True)
+    mandatory_args.add_argument('--grid-file',
+                                help='name of netcdf file that contains '
+                                     'projection description',
+                                required=True)
+    mandatory_args.add_argument('--output-file',
+                                help='output filename',
+                                required=True)
+
+    parser.add_argument('--data-var-names',
+                        help='semicolon-separated list of names of netcdf '
+                             'variables that will be projected and/or saved '
+                             'to the output file; if the list is empty than '
+                             'only lat/lon coordinates will be projected; if '
+                             'a couple of variables contain vector field '
+                             'components aligned with meridians and parallels '
+                             'than they should appear as a single entry in '
+                             'the list joined by the symbol \'+\' '
+                             '(e.g. uwnd+vwnd)',
+                        type=ListParser())
+    parser.add_argument('--add-north-pole',
+                        help='flag that enables inclusion of the North Pole '
+                             'grid point into input data before applying the '
+                             'projection; flag should be set to \'1\' if the '
+                             'input file does not contain grid point for the '
+                             'North Pole to avoid \'holes\' in the output '
+                             'fields; values that correspond to the '
+                             'introduced grid points are calculated as mean '
+                             'values of the arrays that correspond to the '
+                             'highest latitude of the input fields',
+                        type=bool, default=False)
 
 
 def cmd(args):
