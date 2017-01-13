@@ -3,6 +3,8 @@ import sys
 import time
 
 import numpy as np
+from datetime import datetime
+from netcdftime import utime
 
 import cmd.name_constants as names
 from core.converter import Converter
@@ -11,17 +13,43 @@ from core.rotors import Rotor, RotorZ, RotorY, RotorX
 
 
 class ListParser(object):
-    def __init__(self, dtype=None, separator=';'):
+    def __init__(self, val_type=None, separator=';'):
         self.separator = separator
-        self.dtype = dtype
+        self.val_type = val_type
 
     def __call__(self, *args, **kwargs):
         str_arr = args[0].split(self.separator)
 
-        if self.dtype:
-            return map(self.dtype, str_arr)
+        if self.val_type:
+            return map(self.val_type, str_arr)
         else:
             return str_arr
+
+
+class PairParser(object):
+    def __init__(self, key_type=None, val_type=None, separator=':'):
+        self.separator = separator
+        self.key_type = key_type
+        self.val_type = val_type
+
+    def __call__(self, *args, **kwargs):
+        arr = args[0].split(self.separator)
+
+        key_str = arr[0]
+        val_str = self.separator.join(arr[1:])
+
+        key = key_str if self.key_type is None else self.key_type(key_str)
+        val = val_str if self.val_type is None else self.val_type(val_str)
+
+        return key, val
+
+
+class DateTimeParser(object):
+    def __init__(self, fmt='%Y%m%d%H%M%S'):
+        self.fmt = fmt
+
+    def __call__(self, *args, **kwargs):
+        return datetime.strptime(args[0], self.fmt)
 
 
 def parse_pos_intp(string):
@@ -36,6 +64,18 @@ def parse_pos_float(string):
     if result <= 0:
         raise Exception('Argument must be positive.')
     return result
+
+
+def parse_slice(string):
+    elem_arr_str = string.split(':')
+    if len(elem_arr_str) > 3:
+        raise Exception('Argument is not a valid slice.')
+
+    try:
+        return slice(*map(lambda x: int(x.strip()) if x.strip() else None,
+                          elem_arr_str))
+    except ValueError:
+        raise Exception('Argument is not a valid slice.')
 
 
 def generate_cartesian_grid(x_start, x_count, x_step,
@@ -65,6 +105,16 @@ def copy_dim_var(src_ds, dst_ds, dim_var_name, return_data=False):
 
     if return_data:
         return src_var_list
+
+
+def get_time_converter(time_var):
+    try:
+        time_var.units
+    except AttributeError:
+        raise AttributeError('netcdf time variable is missing a \'units\' '
+                             'attribute')
+    return utime(time_var.units,
+                 calendar=getattr(time_var, 'calendar', 'standard'))
 
 
 def set_generic_lat_attributes(lat_var):
@@ -107,8 +157,8 @@ def gen_hist_string(ignored_args=None):
 
 
 def check_preprocessed(dataset):
-    if (not hasattr(dataset, names.ATTR_HISTORY) or
-            'arctic preproc' not in dataset.getncattr(names.ATTR_HISTORY)):
+    if not hasattr(dataset, names.ATTR_HISTORY) or 'arctic preproc' not in \
+            dataset.getncattr(names.ATTR_HISTORY):
         raise Exception()
 
 
@@ -133,6 +183,66 @@ def create_dir_for_file(filename):
         os.makedirs(os.path.dirname(filename))
     except:
         pass
+
+
+class DimIterator(object):
+    def __init__(self, shape, slices=None, iter_mask=None):
+        index_lists = [None] * len(shape)
+        if slices is None:
+            slices = [slice(0, stop, 1) for stop in shape]
+        else:
+            if len(slices) != len(shape):
+                raise Exception()
+            for i, s in enumerate(slices):
+                if slices[i] is None:
+                    slices[i] = slice(0, shape[i], 1)
+                else:
+                    s = slices[i]
+                    if isinstance(s, slice):
+                        s = slice(s.start or 0,
+                                  s.stop or shape[i],
+                                  s.step or 1)
+                    else:
+                        try:
+                            index_list = list(s)
+                            index_lists[i] = index_list
+                            s = slice(0, len(index_list), 1)
+                        except TypeError:
+                            pass
+                    slices[i] = s
+
+        if iter_mask is None:
+            iter_mask = [True] * len(shape)
+        else:
+            if len(iter_mask) != len(shape):
+                raise Exception()
+
+        self._slices = slices
+        self._iter_mask = iter_mask
+        self._index_lists = index_lists
+
+    def slice_tuples(self):
+        current_slice = [s.start if self._iter_mask[i] else s for i, s in
+                         enumerate(self._slices)]
+
+        while True:
+            result = \
+                [s if self._index_lists[i] is None else self._index_lists[i][s]
+                 for i, s in enumerate(current_slice)]
+            yield tuple(result)
+
+            stop = True
+            for idx in xrange(len(self._slices) - 1, -1, -1):
+                if self._iter_mask[idx]:
+                    next_idx = current_slice[idx] + self._slices[idx].step
+                    if self._slices[idx].stop > next_idx:
+                        current_slice[idx] = next_idx
+                        stop = False
+                        break
+                    else:
+                        current_slice[idx] = self._slices[idx].start
+            if stop:
+                break
 
 
 def _decode_rotor(rot_axes_ids, rot_angles_deg):
