@@ -198,6 +198,10 @@ class DimIterator(object):
         self._empty = False
         self._slices, self._iter_mask, self._index_lists = None, None, None
 
+        if len(shape) == 0:
+            self._empty = True
+            return
+
         for s in shape:
             if s == 0:
                 self._empty = True
