@@ -72,10 +72,18 @@ def parse_slice(string):
         raise Exception('Argument is not a valid slice.')
 
     try:
-        return slice(*map(lambda x: int(x.strip()) if x.strip() else None,
-                          elem_arr_str))
+        slice_params = map(lambda x: int(x.strip()) if x.strip() else None,
+                           elem_arr_str)
     except ValueError:
         raise Exception('Argument is not a valid slice.')
+
+    if len(slice_params) == 1:
+        if slice_params[0] is None:
+            raise Exception('Argument is not a valid slice.')
+        else:
+            return slice(slice_params[0], slice_params[0] + 1, None)
+    else:
+        return slice(*slice_params)
 
 
 def generate_cartesian_grid(x_start, x_count, x_step,
@@ -187,6 +195,20 @@ def create_dir_for_file(filename):
 
 class DimIterator(object):
     def __init__(self, shape, slices=None, iter_mask=None):
+        self._empty = False
+        self._slices, self._iter_mask, self._index_lists = None, None, None
+
+        for s in shape:
+            if s == 0:
+                self._empty = True
+                return
+
+        if iter_mask is None:
+            iter_mask = [True] * len(shape)
+        else:
+            if len(iter_mask) != len(shape):
+                raise Exception()
+
         index_lists = [None] * len(shape)
         if slices is None:
             slices = [slice(0, stop, 1) for stop in shape]
@@ -199,50 +221,54 @@ class DimIterator(object):
                 else:
                     s = slices[i]
                     if isinstance(s, slice):
-                        s = slice(s.start or 0,
-                                  s.stop or shape[i],
-                                  s.step or 1)
+                        s = slice(*s.indices(shape[i]))
+                        if s.start == s.stop:
+                            self._empty = True
+                            return
                     else:
                         try:
                             index_list = list(s)
+                            if len(index_list) == 0:
+                                self._empty = True
+                                return
                             index_lists[i] = index_list
                             s = slice(0, len(index_list), 1)
                         except TypeError:
                             pass
                     slices[i] = s
 
-        if iter_mask is None:
-            iter_mask = [True] * len(shape)
-        else:
-            if len(iter_mask) != len(shape):
-                raise Exception()
-
-        self._slices = slices
-        self._iter_mask = iter_mask
-        self._index_lists = index_lists
+        if not self._empty:
+            self._slices = slices
+            self._iter_mask = iter_mask
+            self._index_lists = index_lists
 
     def slice_tuples(self):
-        current_slice = [s.start if self._iter_mask[i] else s for i, s in
-                         enumerate(self._slices)]
+        if not self._empty:
+            current_slice = [s.start if self._iter_mask[i] else s for i, s in
+                             enumerate(self._slices)]
 
-        while True:
-            result = \
-                [s if self._index_lists[i] is None else self._index_lists[i][s]
-                 for i, s in enumerate(current_slice)]
-            yield tuple(result)
+            while True:
+                result = \
+                    [s if self._index_lists[i] is None else
+                     self._index_lists[i][s]
+                     for i, s in enumerate(current_slice)]
+                yield tuple(result)
 
-            stop = True
-            for idx in xrange(len(self._slices) - 1, -1, -1):
-                if self._iter_mask[idx]:
-                    next_idx = current_slice[idx] + self._slices[idx].step
-                    if self._slices[idx].stop > next_idx:
-                        current_slice[idx] = next_idx
-                        stop = False
-                        break
-                    else:
-                        current_slice[idx] = self._slices[idx].start
-            if stop:
-                break
+                stop = True
+                for idx in xrange(len(self._slices) - 1, -1, -1):
+                    if self._iter_mask[idx]:
+                        next_idx = current_slice[idx] + self._slices[idx].step
+                        if (self._slices[idx].step > 0
+                            and self._slices[idx].stop > next_idx) \
+                                or (self._slices[idx].step < 0
+                                    and self._slices[idx].stop < next_idx):
+                            current_slice[idx] = next_idx
+                            stop = False
+                            break
+                        else:
+                            current_slice[idx] = self._slices[idx].start
+                if stop:
+                    break
 
 
 def _decode_rotor(rot_axes_ids, rot_angles_deg):
