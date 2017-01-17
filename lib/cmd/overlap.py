@@ -4,8 +4,8 @@ from netCDF4 import Dataset
 
 from cmd.common import add_or_append_history, ListParser
 
-description = 'copies the first file in the list and fills masked values of a' \
-              'given field with values from fields of the following files'
+description = 'copies the first file in the list and fills masked values of ' \
+              'a given field with values from fields of the following files'
 
 
 def setup_parser(parser):
@@ -37,7 +37,8 @@ def cmd(args):
         input_ds = Dataset(input_file, 'r')
         input_var_data = input_ds.variables[input_var_name][:]
 
-        select_mask = np.logical_and(output_var_data.mask, ~input_var_data.mask)
+        select_mask = np.logical_and(output_var_data.mask,
+                                     ~input_var_data.mask)
         output_var_data[select_mask] = input_var_data[select_mask]
 
         input_ds.close()
