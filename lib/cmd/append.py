@@ -1,7 +1,10 @@
 import shutil
 
 from netCDF4 import Dataset
-from cmd.common import add_or_append_history, copy_nc_attributes, ListParser
+
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import copy_nc_attributes, add_or_append_history
+from cmd.common.arg_processors import ListParser
 
 description = 'copies input file and adds variables from another one to it'
 
@@ -16,6 +19,7 @@ def setup_parser(parser):
 
 
 def cmd(args):
+    create_dir_for_file(args.output_file)
     shutil.copyfile(args.input_file, args.output_file)
 
     output_ds = Dataset(args.output_file, 'r+')

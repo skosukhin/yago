@@ -3,10 +3,10 @@ import sys
 import numpy as np
 from netCDF4 import Dataset
 
-import cmd.name_constants as names
-
-from cmd.common import check_preprocessed, init_converter_from_proj_var, \
-    copy_nc_attributes, add_or_append_history
+import cmd.common.name_constants as names
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import check_preprocessed, \
+    init_converter_from_proj_var, copy_nc_attributes, add_or_append_history
 from core.converter import convert_points
 from core.interpolation import RegularGrid, calc_weights
 
@@ -63,6 +63,7 @@ def cmd(args):
                                          args.assume_lon_cycle, grid,
                                          _progress)
 
+    create_dir_for_file(args.output_file)
     output_ds = Dataset(args.output_file, 'w')
 
     grid_proj_var = grid_ds.variables[names.VAR_PROJECTION]

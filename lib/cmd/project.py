@@ -4,9 +4,12 @@ from itertools import izip
 import numpy as np
 from netCDF4 import Dataset
 
-import cmd.name_constants as names
-from cmd.common import init_converter_from_proj_var, copy_nc_attributes, \
-    get_history, add_history, ListParser, MAX_COPY_DIM_COUNT, DimIterator
+import cmd.common.name_constants as names
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import copy_nc_attributes, \
+    init_converter_from_proj_var, DimIterator, add_history, get_history, \
+    MAX_COPY_DIM_COUNT
+from cmd.common.arg_processors import ListParser
 from core.converter import convert_points, convert_vectors
 
 description = 'projects geographical coordinates and corresponding ' \
@@ -102,6 +105,7 @@ def cmd(args):
             elif len(var_names) > 2:
                 raise Exception()
 
+    create_dir_for_file(args.output_file)
     out_ds = Dataset(args.output_file, 'w')
 
     # Add north pole.

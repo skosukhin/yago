@@ -2,7 +2,8 @@ import numpy as np
 import shutil
 from netCDF4 import Dataset
 
-from cmd.common import add_or_append_history, ListParser
+from cmd.common.nc_utils import add_or_append_history
+from cmd.common.arg_processors import ListParser
 
 description = 'copies the first file in the list and fills masked values of ' \
               'a given field with values from fields of the following files'

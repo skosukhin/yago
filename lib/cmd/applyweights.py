@@ -1,9 +1,12 @@
 import sys
+
 import numpy as np
 from netCDF4 import Dataset
 
-import cmd.name_constants as names
-from cmd.common import copy_nc_attributes, add_or_append_history, ListParser
+import cmd.common.name_constants as names
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import copy_nc_attributes, add_or_append_history
+from cmd.common.arg_processors import ListParser
 from core.interpolation import apply_weights
 
 description = 'applies weights to perform interpolation'
@@ -32,6 +35,7 @@ def cmd(args):
 
     weight_ds = Dataset(args.weight_file, 'r')
 
+    create_dir_for_file(args.output_file)
     output_ds = Dataset(args.output_file, 'w')
 
     weight_proj_var = weight_ds.variables[names.VAR_PROJECTION]

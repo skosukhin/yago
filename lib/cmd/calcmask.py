@@ -1,8 +1,9 @@
 import numpy as np
 from netCDF4 import Dataset
 
-import cmd.name_constants as names
-from cmd.common import copy_nc_attributes
+import cmd.common.name_constants as names
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import copy_nc_attributes
 
 description = 'calculates ocean mask for the following input data adjustments'
 
@@ -20,6 +21,7 @@ def cmd(args):
 
     depth_var = input_ds.variables[args.depth_data_var]
 
+    create_dir_for_file(args.output_file)
     output_ds = Dataset(args.output_file, 'w')
 
     for dim_name in depth_var.dimensions:

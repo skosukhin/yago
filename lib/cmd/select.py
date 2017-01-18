@@ -1,15 +1,18 @@
 import argparse
 from itertools import izip
+from datetime import datetime
 
 import numpy as np
-from datetime import datetime
 from netCDF4 import Dataset
 
-from cmd.common import parse_slice, ListParser, DateTimeParser, PairParser, \
-    get_history, add_history, get_time_converter, copy_nc_attributes, \
-    DimIterator, MAX_COPY_DIM_COUNT
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import copy_nc_attributes, MAX_COPY_DIM_COUNT, \
+    DimIterator, add_history, get_history, get_time_converter
+from cmd.common.arg_processors import ListParser, PairParser, parse_slice, \
+    DateTimeParser
 
 description = 'selects subfields from input file'
+
 
 def setup_parser(parser):
     mandatory_args = parser.add_argument_group('mandatory arguments')
@@ -134,6 +137,7 @@ def cmd(args):
         raise Exception('Variable name list \'--var-names\' is empty.')
 
     in_ds = Dataset(args.input_file, 'r')
+    create_dir_for_file(args.output_file)
     out_ds = Dataset(args.output_file, 'w')
 
     processed_requests = {}
@@ -186,7 +190,7 @@ def cmd(args):
                                         dimensions=in_var.dimensions)
         copy_nc_attributes(in_var, out_var)
 
-        iter_mask = np.ones((len(in_var.shape,)), dtype=bool)
+        iter_mask = np.ones((len(in_var.shape, )), dtype=bool)
         iter_mask[-MAX_COPY_DIM_COUNT:] = False
 
         read_iter = DimIterator(in_var.shape, var_request, iter_mask)

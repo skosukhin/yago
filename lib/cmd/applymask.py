@@ -1,11 +1,13 @@
-import sys
 import shutil
+import sys
 
 import numpy as np
 from netCDF4 import Dataset
 
-import cmd.name_constants as names
-from cmd.common import add_or_append_history, ListParser
+import cmd.common.name_constants as names
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import add_or_append_history
+from cmd.common.arg_processors import ListParser
 
 description = 'adjusts fields to a given mask'
 
@@ -35,6 +37,7 @@ def cmd(args):
     mask = np.ma.getmaskarray(mask_ds.variables[names.VAR_MASK][:])
     mask_ds.close()
 
+    create_dir_for_file(args.output_file)
     shutil.copyfile(args.input_file, args.output_file)
 
     ds = Dataset(args.output_file, 'r+')

@@ -33,11 +33,12 @@ import re
 
 import numpy as np
 
-import cmd.name_constants as names
-from cmd.common import generate_cartesian_grid, \
-    set_generic_lat_attributes, set_generic_lon_attributes, \
-    add_or_append_history, parse_pos_intp, parse_pos_float, \
-    init_converter_from_args, create_dir_for_file, ListParser
+import cmd.common.name_constants as names
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import set_generic_lat_attributes, \
+    set_generic_lon_attributes, add_or_append_history
+from cmd.common.arg_processors import ListParser, parse_pos_intp, \
+    parse_pos_float, init_converter_from_args
 from core.converter import restore_points
 from core.projections import projections
 
@@ -114,8 +115,8 @@ def setup_parser(parser):
 
 def cmd(args):
     converter = init_converter_from_args(args)
-    xx, yy = generate_cartesian_grid(args.x_start, args.x_count, args.x_step,
-                                     args.y_start, args.y_count, args.y_step)
+    xx, yy = _generate_cartesian_grid(args.x_start, args.x_count, args.x_step,
+                                      args.y_start, args.y_count, args.y_step)
 
     lats, lons = restore_points(xx, yy, converter)
 
@@ -168,6 +169,16 @@ def get_serializer_from_args(args):
     else:
         raise Exception(
             'Unknown output format: \'' + args.output_format + '\'.')
+
+
+def _generate_cartesian_grid(x_start, x_count, x_step,
+                             y_start, y_count, y_step):
+    x_array = np.linspace(x_start, x_start + (x_count - 1) * x_step,
+                          num=x_count)
+    y_array = np.linspace(y_start, y_start + (y_count - 1) * y_step,
+                          num=y_count)
+
+    return np.meshgrid(x_array, y_array)
 
 
 class OutputSerializer(object):

@@ -3,9 +3,11 @@ import sys
 import numpy as np
 from netCDF4 import Dataset
 
-import cmd.name_constants as names
-from cmd.common import copy_nc_attributes, set_generic_lat_attributes, \
-    set_generic_lon_attributes, add_history, get_history, ListParser
+import cmd.common.name_constants as names
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import set_generic_lat_attributes, \
+    set_generic_lon_attributes, copy_nc_attributes, add_history, get_history
+from cmd.common.arg_processors import ListParser
 
 description = 'applies a number of hacks to prepare input file for the ' \
               'following processing'
@@ -45,6 +47,7 @@ def cmd(args):
 
     output_lat_list = input_lat_list[output_lat_indices]
 
+    create_dir_for_file(args.output_file)
     output_ds = Dataset(args.output_file, 'w')
 
     output_ds.createDimension(names.DIMVAR_LAT, len(output_lat_list))
