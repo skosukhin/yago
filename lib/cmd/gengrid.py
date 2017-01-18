@@ -42,7 +42,8 @@ from cmd.common.arg_processors import ListParser, parse_pos_intp, \
 from core.converter import restore_points
 from core.projections import projections
 
-description = 'generates grids'
+description = 'generates a regular grid in Cartesian coordinates on a ' \
+              'specified projection plane'
 
 _DEFAULT_EARTH_RADIUS = np.float64(6370997.0)
 

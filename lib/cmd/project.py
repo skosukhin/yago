@@ -12,8 +12,8 @@ from cmd.common.nc_utils import copy_nc_attributes, \
 from cmd.common.arg_processors import ListParser
 from core.converter import convert_points, convert_vectors
 
-description = 'projects geographical coordinates and corresponding ' \
-              'fields to a plane'
+description = 'projects fields specified on a rectilinear grid in ' \
+              'geographical coordinates to a Cartesian plane'
 
 
 def setup_parser(parser):

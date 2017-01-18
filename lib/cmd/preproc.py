@@ -10,7 +10,7 @@ from cmd.common.nc_utils import set_generic_lat_attributes, \
 from cmd.common.arg_processors import ListParser
 
 description = 'applies a number of hacks to prepare input file for the ' \
-              'following processing'
+              'following processing (deprecated)'
 
 
 def setup_parser(parser):
