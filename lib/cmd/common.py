@@ -12,6 +12,10 @@ from core.projections import projections
 from core.rotors import Rotor, RotorZ, RotorY, RotorX
 
 
+# Maximum number of dimensions to copy during one read/write operation
+MAX_COPY_DIM_COUNT = 2
+
+
 class ListParser(object):
     def __init__(self, val_type=None, separator=';'):
         self.separator = separator
@@ -101,20 +105,6 @@ def copy_nc_attributes(src_var, dst_var):
         dst_var.setncattr(attr_name, src_var.getncattr(attr_name))
 
 
-def copy_dim_var(src_ds, dst_ds, dim_var_name, return_data=False):
-    src_dim = src_ds.dimensions[dim_var_name]
-    src_var = src_ds.variables[dim_var_name]
-    dst_ds.createDimension(dim_var_name, src_dim.size)
-    dst_var = dst_ds.createVariable(dim_var_name, src_var.dtype,
-                                    dimensions=(dim_var_name,))
-    src_var_list = src_var[:]
-    dst_var[:] = src_var_list
-    copy_nc_attributes(src_var, dst_var)
-
-    if return_data:
-        return src_var_list
-
-
 def get_time_converter(time_var):
     try:
         time_var.units
@@ -172,8 +162,15 @@ def check_preprocessed(dataset):
 
 def init_converter_from_proj_var(proj_var):
     r = _decode_rotor(proj_var.rot_axes, proj_var.rot_angles_deg)
+
+    standard_parallel_list = proj_var.standard_parallel
+    try:
+        standard_parallel_list[0]
+    except:
+        standard_parallel_list = [standard_parallel_list]
+
     p = projections[proj_var.short_name].init(proj_var.earth_radius,
-                                              proj_var.standard_parallel)
+                                              standard_parallel_list)
 
     return Converter(r, p)
 
@@ -238,13 +235,25 @@ class DimIterator(object):
                             index_lists[i] = index_list
                             s = slice(0, len(index_list), 1)
                         except TypeError:
-                            pass
+                            index_lists[i] = [s]
+                            s = slice(0, 1, 1)
+
                     slices[i] = s
 
         if not self._empty:
             self._slices = slices
             self._iter_mask = iter_mask
             self._index_lists = index_lists
+
+    def __len__(self):
+        if self._empty:
+            return 0
+
+        result = 1
+        for idx, slc in enumerate(self._slices):
+            if self._iter_mask[idx]:
+                result *= len(xrange(slc.start, slc.stop, slc.step))
+        return result
 
     def slice_tuples(self):
         if not self._empty:

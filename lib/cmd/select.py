@@ -7,13 +7,9 @@ from netCDF4 import Dataset
 
 from cmd.common import parse_slice, ListParser, DateTimeParser, PairParser, \
     get_history, add_history, get_time_converter, copy_nc_attributes, \
-    DimIterator
+    DimIterator, MAX_COPY_DIM_COUNT
 
 description = 'selects subfields from input file'
-
-# Maximum number of dimensions to copy during one read/write operation
-_COPY_DIM_COUNT = 2
-
 
 def setup_parser(parser):
     mandatory_args = parser.add_argument_group('mandatory arguments')
@@ -191,14 +187,14 @@ def cmd(args):
         copy_nc_attributes(in_var, out_var)
 
         iter_mask = np.ones((len(in_var.shape,)), dtype=bool)
-        iter_mask[-_COPY_DIM_COUNT:] = False
+        iter_mask[-MAX_COPY_DIM_COUNT:] = False
 
         read_iter = DimIterator(in_var.shape, var_request, iter_mask)
         write_iter = DimIterator(out_var.shape, None, iter_mask)
 
-        for read_tup, write_tup in izip(read_iter.slice_tuples(),
+        for read_slc, write_slc in izip(read_iter.slice_tuples(),
                                         write_iter.slice_tuples()):
-            out_var[write_tup] = in_var[read_tup]
+            out_var[write_slc] = in_var[read_slc]
 
     add_history(out_ds, get_history(in_ds))
     in_ds.close()
