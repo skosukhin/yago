@@ -4,7 +4,7 @@ import sys
 if (sys.version_info[0] > 2) or (sys.version_info[:2] < (2, 7)):
     version_info = sys.version_info[:3]
     sys.exit(
-        'Arctic requires Python 2.7. This is Python %d.%d.%d.' % version_info)
+        'Yago requires Python 2.7. This is Python %d.%d.%d.' % version_info)
 
 import os
 
