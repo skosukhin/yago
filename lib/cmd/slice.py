@@ -11,14 +11,14 @@ from cmd.common.nc_utils import copy_nc_attributes, MAX_COPY_DIM_COUNT, \
 from cmd.common.arg_processors import ListParser, PairParser, parse_slice, \
     DateTimeParser
 
-description = 'selects subfields from input file'
+description = 'slices fields'
 
 
 def setup_parser(parser):
     mandatory_args = parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('--input-file',
                                 help='name of netcdf file that contains data '
-                                     'that need to be projected',
+                                     'that need to be sliced',
                                 required=True)
     mandatory_args.add_argument('--output-file',
                                 help='output filename',
