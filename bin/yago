@@ -3,8 +3,14 @@ import sys
 
 if (sys.version_info[0] > 2) or (sys.version_info[:2] < (2, 7)):
     version_info = sys.version_info[:3]
-    sys.exit(
-        'Yago requires Python 2.7. This is Python %d.%d.%d.' % version_info)
+    sys.exit('Yago requires Python 2.7. This is Python %d.%d.%d.'
+             % version_info)
+
+import numpy
+from numpy.lib import NumpyVersion
+if NumpyVersion(numpy.__version__) < '1.11.0':
+    sys.exit('Yago requires NumPy 1.11.0 or later. This is NumPy %s.'
+             % numpy.__version__)
 
 import os
 
