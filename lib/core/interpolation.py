@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.ma import MaskedArray
 
 from core.common import min_max
 
