@@ -8,7 +8,7 @@ import cmd.common.name_constants as names
 from cmd.common.misc import create_dir_for_file
 from cmd.common.nc_utils import copy_nc_attributes, \
     init_converter_from_proj_var, DimIterator, add_history, get_history, \
-    MAX_COPY_DIM_COUNT
+    MAX_COPY_DIM_COUNT, find_dim_indices, add_missing_dim_vars
 from cmd.common.arg_processors import ListParser
 from core.converter import convert_points, convert_vectors
 
@@ -209,10 +209,10 @@ def cmd(args):
     for var_name in scalar_vars:
         print var_name
         in_var = in_ds.variables[var_name]
-        _add_missing_dim_vars(in_ds, out_ds, in_var.dimensions)
+        add_missing_dim_vars(in_ds, out_ds, in_var.dimensions)
 
-        lat_idx, lon_idx = _find_dim_indices([args.lat_name, args.lon_name],
-                                             in_var.dimensions)
+        lat_idx, lon_idx = find_dim_indices([args.lat_name, args.lon_name],
+                                            in_var.dimensions)
 
         out_var = out_ds.createVariable(var_name,
                                         in_var.dtype,
@@ -278,7 +278,7 @@ def cmd(args):
         if in_u_var.dimensions != in_v_var.dimensions:
             raise Exception()
 
-        lat_idx, lon_idx = _find_dim_indices(
+        lat_idx, lon_idx = find_dim_indices(
             [args.lat_name, args.lon_name],
             in_u_var.dimensions)
 
@@ -287,7 +287,7 @@ def cmd(args):
 
         swap_axes = lon_idx < lat_idx
 
-        _add_missing_dim_vars(in_ds, out_ds, in_u_var.dimensions)
+        add_missing_dim_vars(in_ds, out_ds, in_u_var.dimensions)
 
         iter_mask = np.ones((len(in_u_var.shape, )), dtype=bool)
         iter_mask[lat_idx] = False
@@ -381,40 +381,3 @@ def _add_lon_cycle(data):
         return np.ma.append(data, data[:, 0, None], axis=1)
     else:
         raise Exception()
-
-
-def _add_missing_dim_vars(src_ds, dst_ds, dim_names):
-    for dim_name in dim_names:
-        if dim_name not in dst_ds.dimensions:
-            src_dim = src_ds.dimensions[dim_name]
-            dst_ds.createDimension(dim_name,
-                                   None if src_dim.isunlimited()
-                                   else src_dim.size)
-            if dim_name in src_ds.variables:
-                src_dim_var = src_ds.variables[dim_name]
-                if 1 == len(src_dim_var.dimensions) \
-                        and src_dim_var.dimensions[0] == dim_name:
-                    dst_dim_var = \
-                        dst_ds.createVariable(
-                            dim_name,
-                            src_dim_var.dtype,
-                            dimensions=src_dim_var.dimensions)
-                    copy_nc_attributes(src_dim_var, dst_dim_var)
-                    dst_dim_var[:] = src_dim_var[:]
-
-
-def _find_dim_indices(names_to_find, dimensions):
-    result = [None] * len(names_to_find)
-    for result_idx, name_to_find in enumerate(names_to_find):
-        for dim_idx, dim_name in enumerate(dimensions):
-            if name_to_find == dim_name:
-                if result[result_idx] is not None:
-                    raise Exception()
-                result[result_idx] = dim_idx
-    return result
-
-
-def _swap_values_in_tuple(tup, idx1, idx2):
-    l = list(tup)
-    l[idx1], l[idx2] = l[idx2], l[idx1]
-    return tuple(l)

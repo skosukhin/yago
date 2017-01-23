@@ -2,6 +2,7 @@ import os
 import sys
 import time
 
+import numpy as np
 from netcdftime import utime
 
 import cmd.common.name_constants as names
@@ -180,6 +181,57 @@ def init_converter_from_proj_var(proj_var):
                                               standard_parallel_list)
 
     return Converter(r, p)
+
+
+def find_dim_indices(names_to_find, dimensions):
+    result = [None] * len(names_to_find)
+    for result_idx, name_to_find in enumerate(names_to_find):
+        for dim_idx, dim_name in enumerate(dimensions):
+            if name_to_find == dim_name:
+                if result[result_idx] is not None:
+                    raise Exception()
+                result[result_idx] = dim_idx
+    return result
+
+
+def reorder_axes(arr, new_order):
+    current_order = range(len(arr.shape))
+    undo_order = [None] * len(new_order)
+    for current_idx, new_idx in enumerate(new_order):
+        undo_order[new_idx] = current_idx
+    return np.moveaxis(arr, current_order, new_order), undo_order
+
+
+def rename_dimensions(dim_name_tuple, rename_dict):
+    result = []
+    for dim_name in dim_name_tuple:
+        if dim_name in rename_dict:
+            result.append(rename_dict[dim_name])
+        else:
+            result.append(dim_name)
+    return tuple(result)
+
+
+def add_missing_dim_vars(src_ds, dst_ds, dim_names):
+    for dim_name in dim_names:
+        if dim_name not in src_ds.dimensions:
+            continue
+        if dim_name not in dst_ds.dimensions:
+            src_dim = src_ds.dimensions[dim_name]
+            dst_ds.createDimension(dim_name,
+                                   None if src_dim.isunlimited()
+                                   else src_dim.size)
+            if dim_name in src_ds.variables:
+                src_dim_var = src_ds.variables[dim_name]
+                if 1 == len(src_dim_var.dimensions) \
+                        and src_dim_var.dimensions[0] == dim_name:
+                    dst_dim_var = \
+                        dst_ds.createVariable(
+                            dim_name,
+                            src_dim_var.dtype,
+                            dimensions=src_dim_var.dimensions)
+                    copy_nc_attributes(src_dim_var, dst_dim_var)
+                    dst_dim_var[:] = src_dim_var[:]
 
 
 def _decode_rotor(rot_axes_ids, rot_angles_deg):
