@@ -53,14 +53,19 @@ def setup_parser(parser):
                         type=string_list_parser)
     parser.add_argument('--add-north-pole',
                         help='flag that enables inclusion of the North Pole '
-                             'grid point into input data before applying the '
-                             'projection; flag should be set to \'1\' if the '
+                             'grid point; flag should be set to \'1\' if the '
                              'input file does not contain grid point for the '
                              'North Pole to avoid \'holes\' in the output '
                              'fields; values that correspond to the '
                              'introduced grid points are calculated as mean '
                              'values of the arrays that correspond to the '
                              'highest latitude of the input fields',
+                        type=bool, default=False)
+    parser.add_argument('--add-lon-cycle',
+                        help='flag that enables introduction of grid cells'
+                             'between the last and the first longitudes; flag '
+                             'should be set to \'1\' if the input grid covers '
+                             'full circles along parallels',
                         type=bool, default=False)
     parser.add_argument('--x-name',
                         help='name to be given to the netcdf variable that '
@@ -115,7 +120,15 @@ def cmd(args):
 
     prepend_north_pole = None
     if args.add_north_pole:
-        prepend_north_pole = in_lat_list[0] > in_lat_list[1]
+        if all(in_lat_list[idx] > in_lat_list[idx + 1] for idx in
+               xrange(len(in_lat_list) - 1)):
+            prepend_north_pole = True
+        elif all(in_lat_list[idx] < in_lat_list[idx + 1] for idx in
+                 xrange(len(in_lat_list) - 1)):
+            prepend_north_pole = False
+        else:
+            raise Exception('Northern Pole grid point can not be added to the '
+                            'unsorted latitude variable.')
         if prepend_north_pole:
             out_lat_list = np.append([90.0], in_lat_list)
         else:
@@ -130,10 +143,26 @@ def cmd(args):
     copy_nc_attributes(in_lat_var, out_lat_var)
     out_lat_var[:] = out_lat_list
 
-    # Copy longitudes.
+    # Add lon cycle.
     in_lon_list = in_lon_var[:]
     in_lon_dim = in_ds.dimensions[in_lon_dim_name]
     out_lon_list = in_lon_list
+    if args.add_lon_cycle:
+        new_lon_value = in_lon_list[0]
+        if all(in_lon_list[idx] > in_lon_list[idx + 1] for idx in
+               xrange(len(in_lon_list) - 1)):
+            while new_lon_value > in_lon_list[-1]:
+                new_lon_value -= 360.0
+        elif all(in_lon_list[idx] < in_lon_list[idx + 1] for idx in
+                 xrange(len(in_lon_list) - 1)):
+            while new_lon_value < in_lon_list[-1]:
+                new_lon_value += 360.0
+        else:
+            raise Exception('Longitude cycle can not be introduced for the '
+                            'unsorted longitude variable.')
+
+        out_lon_list = np.append(in_lon_list, [new_lon_value])
+
     out_ds.createDimension(in_lon_dim_name,
                            None if in_lon_dim.isunlimited()
                            else out_lon_list.size)
@@ -147,9 +176,12 @@ def cmd(args):
     grid_proj_var = grid_ds.variables[names.VAR_PROJECTION]
     converter = init_converter_from_proj_var(grid_proj_var)
 
-    out_lo, out_la = np.meshgrid(out_lon_list, out_lat_list)
+    out_lo, out_la = np.meshgrid(in_lon_list, out_lat_list)
     print 'Calculating coordinates of grid points:'
     xx, yy = convert_points(out_la, out_lo, converter, _progress)
+    if args.add_lon_cycle:
+        xx = _add_lon_cycle(xx)
+        yy = _add_lon_cycle(yy)
 
     out_proj_var = out_ds.createVariable(names.VAR_PROJECTION,
                                          grid_proj_var.dtype)
@@ -188,13 +220,28 @@ def cmd(args):
 
         iter_mask = np.ones((len(in_var.shape, )), dtype=bool)
 
-        if args.add_north_pole and lat_idx is not None:
-            # In this case we add values for the North Pole.
+        modify_lats = False
+        if lat_idx is not None:
             iter_mask[lat_idx] = False
-            swap_axes = False
-            if lon_idx is not None:
-                iter_mask[lon_idx] = False
+            modify_lats = args.add_north_pole
+
+        modify_lons = False
+        swap_axes = False
+        if lon_idx is not None:
+            iter_mask[lon_idx] = False
+            modify_lons = args.add_lon_cycle
+            if lat_idx is not None:
                 swap_axes = lon_idx < lat_idx
+
+        if not (modify_lats or modify_lons):
+            iter_mask[-MAX_COPY_DIM_COUNT:] = False
+            dim_iterator = DimIterator(in_var.shape, None, iter_mask)
+            write_op_count = len(dim_iterator)
+            for write_op_num, slc in enumerate(dim_iterator.slice_tuples()):
+                _progress(write_op_num, write_op_count)
+                out_var[slc] = in_var[slc]
+            _progress(write_op_count, write_op_count)
+        else:
             read_iter = DimIterator(in_var.shape, None, iter_mask)
             write_iter = DimIterator(out_var.shape, None, iter_mask)
             write_op_count = len(read_iter)
@@ -202,21 +249,21 @@ def cmd(args):
                     izip(read_iter.slice_tuples(), write_iter.slice_tuples())):
                 _progress(write_op_num, write_op_count)
                 in_field = in_var[read_slc]
+
                 if swap_axes:
                     in_field = np.swapaxes(in_field, lat_idx, lon_idx)
-                out_field = _add_north_pole(in_field, prepend_north_pole)
+
+                out_field = in_field
+                if modify_lats:
+                    out_field = _add_north_pole(out_field, prepend_north_pole)
+
+                if modify_lons:
+                    out_field = _add_lon_cycle(out_field)
+
                 if swap_axes:
                     out_field = np.swapaxes(out_field, lat_idx, lon_idx)
+
                 out_var[write_slc] = out_field
-            _progress(write_op_count, write_op_count)
-        else:
-            # Otherwise, we just copy the variable.
-            iter_mask[-MAX_COPY_DIM_COUNT:] = False
-            dim_iterator = DimIterator(in_var.shape, None, iter_mask)
-            write_op_count = len(dim_iterator)
-            for write_op_num, slc in enumerate(dim_iterator.slice_tuples()):
-                _progress(write_op_num, write_op_count)
-                out_var[slc] = in_var[slc]
             _progress(write_op_count, write_op_count)
 
     if len(vector_vars) > 0:
@@ -266,6 +313,10 @@ def cmd(args):
                                               prepend_north_pole)
                 out_y_field = _add_north_pole(out_y_field,
                                               prepend_north_pole)
+
+            if args.add_lon_cycle:
+                out_x_field = _add_lon_cycle(out_x_field)
+                out_y_field = _add_lon_cycle(out_y_field)
 
             if swap_axes:
                 out_x_field = np.swapaxes(out_x_field, lat_idx, lon_idx)
@@ -318,6 +369,16 @@ def _add_north_pole(data, prepend):
             north_pole_value = data.dtype.type(np.ma.mean(data[-1]))
             return np.ma.append(
                 data, [np.ma.repeat(north_pole_value, data.shape[1])], axis=0)
+    else:
+        raise Exception()
+
+
+def _add_lon_cycle(data):
+    dim_num = len(data.shape)
+    if dim_num == 1:
+        return np.ma.append(data, data[0])
+    elif dim_num == 2:
+        return np.ma.append(data, data[:, 0, None], axis=1)
     else:
         raise Exception()
 
