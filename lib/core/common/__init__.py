@@ -17,14 +17,6 @@ def build_2d_rotation_z_rad(angle_rad):
     return np.array([[c, -s], [s, c]])
 
 
-def adjust_angle_180(angle):
-    while angle >= 180.0:
-        angle -= 360.0
-    while angle < -180.0:
-        angle += 360.0
-    return angle
-
-
 def min_max(arr):
     mi = arr[0]
     ma = mi
