@@ -60,6 +60,9 @@ class Rotor(object):
         """
         return Rotor._rotate_point(self._rot_matrix_to, lat, lon)
 
+    def convert_points(self, lat, lon):
+        return Rotor._rotate_points(self._rot_matrix_to, lat, lon)
+
     def restore_point(self, rot_lat, rot_lon):
         """
         Calculates the regular lat/lon coordinates of the given point.
@@ -138,6 +141,15 @@ class Rotor(object):
         )
 
     @staticmethod
+    def _rotate_points(rot_matrix, lat, lon):
+        lat, lon = Rotor._resolve_polar_points(lat, lon)
+        orig_normal = Rotor._build_normals(lat, lon)
+        rot_normal = np.einsum('ij,...j->...i', rot_matrix, orig_normal)
+        return Rotor._resolve_polar_points(
+            np.degrees(np.arcsin(rot_normal[:, :, 2])),
+            np.degrees(np.arctan2(rot_normal[:, :, 1], rot_normal[:, :, 0])))
+
+    @staticmethod
     def _rotate_vector(rot_matrix, lat, lon, u, v, return_point=False):
         lat, lon = Rotor._resolve_polar_point(lat, lon)
         east, north = Rotor._build_east(lon), Rotor._build_north(lat, lon)
@@ -163,6 +175,12 @@ class Rotor(object):
         return np.array([c_lat * c_lon, c_lat * s_lon, s_lat])
 
     @staticmethod
+    def _build_normals(lat, lon):
+        c_lat, s_lat = cos_sin_deg(lat)
+        c_lon, s_lon = cos_sin_deg(lon)
+        return np.stack([c_lat * c_lon, c_lat * s_lon, s_lat], axis=-1)
+
+    @staticmethod
     def _build_east(lon):
         c_lon, s_lon = cos_sin_deg(lon)
         return np.array([-s_lon, c_lon, 0.0])
@@ -186,6 +204,14 @@ class Rotor(object):
         eps = np.finfo(float).eps
         if np.fabs(np.fabs(lat) - 90.0) <= eps:
             lon = 0.0
+        return lat, lon
+
+    @staticmethod
+    def _resolve_polar_points(lat, lon):
+        eps = np.finfo(lat.dtype).eps
+        mask = np.fabs(np.fabs(lat) - lat.dtype.type(90)) <= eps
+        lon = np.where(mask,
+                       np.zeros(lon.shape, lon.dtype), lon)
         return lat, lon
 
 
