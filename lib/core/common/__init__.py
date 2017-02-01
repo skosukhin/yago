@@ -5,7 +5,7 @@ QUARTER_PI = np.pi / 4.0
 
 
 def cos_sin_rad(angle_rad):
-    return np.array([np.cos(angle_rad), np.sin(angle_rad)])
+    return np.cos(angle_rad), np.sin(angle_rad)
 
 
 def cos_sin_deg(angle_deg):

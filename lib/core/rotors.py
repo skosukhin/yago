@@ -15,6 +15,8 @@ class Rotor(object):
     the Northern Pole.
     """
 
+    _NORTH_POLE_TOLERANCE = 1e-5
+
     def __init__(self):
         self._rot_axes_ids = ()
         self._rot_angles_deg = ()
@@ -48,71 +50,64 @@ class Rotor(object):
     def rot_angles_deg(self):
         return self._rot_angles_deg
 
-    def convert_point(self, lat, lon):
+    def convert_points(self, lats, lons):
         """
-        Calculates the rotated lat/lon coordinates of the given point.
-        :param lat: Latitude of the point (in degrees) in the regular lat/lon
-        system.
-        :param lon: Longitude of the point (in degrees) in the regular lat/lon
-        system.
-        :return: A tuple (rot_lat, rot_lon) of the rotated lat/lon coordinates
-        of the given point.
+        Calculates rotated lat/lon coordinates.
+        :param lats: Geographical latitudes of points (in degrees).
+        :param lons: Geographical longitudes of points (in degrees).
+        :return: A tuple (rot_lats, rot_lons) of rotated coordinates
+        (in degrees).
         """
-        return Rotor._rotate_point(self._rot_matrix_to, lat, lon)
+        lats, lons = np.asanyarray(lats), np.asanyarray(lons)
+        return Rotor._rotate_points(self._rot_matrix_to, lats, lons)
 
-    def convert_points(self, lat, lon):
-        return Rotor._rotate_points(self._rot_matrix_to, lat, lon)
+    def restore_points(self, rlats, rlons):
+        """
+        Calculates geographical lat/lon coordinates.
+        :param rlats: Rotated latitudes of points (in degrees).
+        :param rlons: Rotated longitudes of points (in degrees).
+        :return: A tuple (lat, lon) of geographical lat/lon coordinates
+        (in degrees).
+        """
+        rlats, rlons = np.asanyarray(rlats), np.asanyarray(rlons)
+        return Rotor._rotate_points(self._rot_matrix_from, rlats, rlons)
 
-    def restore_point(self, rot_lat, rot_lon):
+    def convert_vectors(self, uu, vv, lats, lons, return_point=False):
         """
-        Calculates the regular lat/lon coordinates of the given point.
-        :param rot_lat: Latitude of the point (in degrees) in the rotated
-        lat/lon system.
-        :param rot_lon: Longitude of the point (in degrees) in the rotated
-        lat/lon system.
-        :return: A tuple (lat, lon) of the regular lat/lon coordinates of the
-        given point.
+        Calculates rotated zonal and meridional components of given vectors.
+        :param uu: Zonal components of vectors.
+        :param vv: Meridional components of vectors.
+        :param lats: Geographical latitudes of vectors' origins (in degrees).
+        :param lons: Geographical longitudes of vectors' origins (in degrees).
+        :param return_point: Flag that tells the method to include rotated
+        lat/lon coordinates of the vectors' origins into the output tuple.
+        :return: A tuple of rotated zonal and meridional components. If the
+        flag return_point is True, than the result tuple is extended with the
+        rotated (rot_lats, rot_lons) coordinates of the vectors' origins.
         """
-        return Rotor._rotate_point(self._rot_matrix_from, rot_lat, rot_lon)
+        uu, vv = np.asanyarray(uu), np.asanyarray(vv)
+        lats, lons = np.asanyarray(lats), np.asanyarray(lons)
+        return Rotor._rotate_vectors(self._rot_matrix_to,
+                                     uu, vv, lats, lons,
+                                     return_point)
 
-    def convert_vector(self, u, v, lat, lon, return_point=False):
+    def restore_vectors(self, rot_uu, rot_vv, rot_lats, rot_lons,
+                        return_point=False):
         """
-        Calculates the rotated zonal and meridional components of the given
-        vector that originates from the given point.
-        :param u: True zonal component of the vector.
-        :param v: True meridional component of the vector.
-        :param lat: True latitude (in degrees) of the vector's origin.
-        :param lon: True longitude (in degrees) of the vector's origin.
-        :param return_point: Flag that tells the method to return the rotated
-        lat/lon coordinates of the vector's origin along with its components.
-        :return: A tuple of the rotated zonal and meridional components of
-        the vector respectively. If the flag return_point is True, than the
-        result tuple is extended with the rotated (lat, lon) coordinates of the
-        vector's origin.
+        Calculates zonal and meridional components of given rotated vectors.
+        :param rot_uu: Rotated zonal component of vectors.
+        :param rot_vv: Rotated meridional component of vectors.
+        :param rot_lats: Rotated latitudes of vectors' origins (in degrees).
+        :param rot_lons: Rotated longitudes of vectors' origins (in degrees).
+        :param return_point: Flag that tells the method include geographical
+        coordinates of the vectors' origins into the output tuple.
+        :return: A tuple of the zonal and meridional components. If the flag
+        return_point is True, than the result tuple is extended with the
+        geographical (lat, lon) coordinates of the vectors' origins.
         """
-        return Rotor._rotate_vector(
-            self._rot_matrix_to, lat, lon, u, v, return_point
-        )
-
-    def restore_vector(self, rot_u, rot_v, rot_lat, rot_lon,
-                       return_point=False):
-        """
-        Calculates the zonal and meridional components of the given vector that
-        originates from the given point.
-        :param rot_u: False zonal component of the vector.
-        :param rot_v: False meridional component of the vector.
-        :param rot_lat: False latitude (in degrees) of the vector's origin.
-        :param rot_lon: False longitude (in degrees) of the vector's origin.
-        :param return_point: Flag that tells the method to return the spherical
-        coordinates of the vector's origin along with its components.
-        :return: A tuple of the true zonal and true meridional components of
-        the vector respectively. If the flag return_point is True, than the
-        result tuple is extended with the regular spherical (lat, lon)
-        coordinates of the vector's origin.
-        """
-        return Rotor._rotate_vector(self._rot_matrix_from, rot_lat, rot_lon,
-                                    rot_u,
-                                    rot_v, return_point)
+        return Rotor._rotate_vectors(self._rot_matrix_from,
+                                     rot_uu, rot_vv, rot_lats, rot_lons,
+                                     return_point)
 
     @staticmethod
     def chain(*rotors):
@@ -130,89 +125,80 @@ class Rotor(object):
         return result
 
     @staticmethod
-    def _rotate_point(rot_matrix, lat, lon):
-        lat, lon = Rotor._resolve_polar_point(lat, lon)
-        orig_normal = Rotor._build_normal(lat, lon)
-        rot_normal = np.dot(rot_matrix, orig_normal).ravel()
-
-        return Rotor._resolve_polar_point(
-            np.degrees(np.arcsin(rot_normal[2])),
-            np.degrees(np.arctan2(rot_normal[1], rot_normal[0]))
-        )
-
-    @staticmethod
-    def _rotate_points(rot_matrix, lat, lon):
-        lat, lon = Rotor._resolve_polar_points(lat, lon)
-        orig_normal = Rotor._build_normals(lat, lon)
-        rot_normal = np.einsum('ij,...j->...i', rot_matrix, orig_normal)
-        return Rotor._resolve_polar_points(
-            np.degrees(np.arcsin(rot_normal[..., 2])),
-            np.degrees(np.arctan2(rot_normal[..., 1], rot_normal[..., 0])))
+    def _rotate_points(rot_matrix, lats, lons):
+        np_tol = lats.dtype.type(Rotor._NORTH_POLE_TOLERANCE)
+        lats, lons = Rotor._resolve_polar_points(lats, lons, np_tol)
+        c_lats, s_lats = cos_sin_deg(lats)
+        c_lons, s_lons = cos_sin_deg(lons)
+        orig_normals = Rotor._build_normals(c_lats, s_lats, c_lons, s_lons)
+        rot_normals = np.einsum('ij,...j', rot_matrix, orig_normals)
+        rot_lats = np.degrees(np.arcsin(rot_normals[..., 2]))
+        rot_lons = np.degrees(np.arctan2(rot_normals[..., 1],
+                                         rot_normals[..., 0]))
+        return Rotor._resolve_polar_points(rot_lats, rot_lons, np_tol)
 
     @staticmethod
-    def _rotate_vector(rot_matrix, lat, lon, u, v, return_point=False):
-        lat, lon = Rotor._resolve_polar_point(lat, lon)
-        east, north = Rotor._build_east(lon), Rotor._build_north(lat, lon)
+    def _rotate_vectors(rot_matrix, uu, vv, lats, lons, return_point=False):
+        np_tol = lats.dtype.type(Rotor._NORTH_POLE_TOLERANCE)
+        lats, lons = Rotor._resolve_polar_points(lats, lons, np_tol)
+        c_lats, s_lats = cos_sin_deg(lats)
+        c_lons, s_lons = cos_sin_deg(lons)
+        easts = Rotor._build_easts(c_lons, s_lons)
+        norths = Rotor._build_norths(c_lats, s_lats, c_lons, s_lons)
+        vectors_3d = \
+            np.einsum('...i,...', easts, uu) + \
+            np.einsum('...i,...', norths, vv)
 
-        vector_3d = Rotor._from_uv_to_3d(u, v, east, north)
-        rot_vector_3d = np.dot(rot_matrix, vector_3d)
-        rot_lat, rot_lon = Rotor._rotate_point(rot_matrix, lat, lon)
+        rot_vectors_3d = np.einsum('ij,...j', rot_matrix, vectors_3d)
+        rot_lats, rot_lons = Rotor._rotate_points(rot_matrix, lats, lons)
 
-        rot_east = Rotor._build_east(rot_lon)
-        rot_north = Rotor._build_north(rot_lat, rot_lon)
+        c_rot_lats, s_rot_lats = cos_sin_deg(rot_lats)
+        c_rot_lons, s_rot_lons = cos_sin_deg(rot_lons)
+        rot_easts = Rotor._build_easts(c_rot_lons, s_rot_lons)
+        rot_norths = Rotor._build_norths(c_rot_lats, s_rot_lats,
+                                         c_rot_lons, s_rot_lons)
 
-        rot_u, rot_v = Rotor._from_3d_to_uv(rot_vector_3d, rot_east, rot_north)
+        rot_uu = np.einsum('...i,...i', rot_vectors_3d, rot_easts)
+        rot_vv = np.einsum('...i,...i', rot_vectors_3d, rot_norths)
 
         if return_point:
-            return rot_u, rot_v, rot_lat, rot_lon
+            return rot_uu, rot_vv, rot_lats, rot_lons
         else:
-            return rot_u, rot_v
+            return rot_uu, rot_vv
 
     @staticmethod
-    def _build_normal(lat, lon):
-        c_lat, s_lat = cos_sin_deg(lat)
-        c_lon, s_lon = cos_sin_deg(lon)
-        return np.array([c_lat * c_lon, c_lat * s_lon, s_lat])
+    def _build_normals(c_lats, s_lats, c_lons, s_lons):
+        return np.stack([c_lats * c_lons,
+                         c_lats * s_lons,
+                         s_lats],
+                        axis=-1)
 
     @staticmethod
-    def _build_normals(lat, lon):
-        c_lat, s_lat = cos_sin_deg(lat)
-        c_lon, s_lon = cos_sin_deg(lon)
-        return np.stack([c_lat * c_lon, c_lat * s_lon, s_lat], axis=-1)
+    def _build_easts(c_lons, s_lons):
+        return np.stack([-s_lons,
+                         c_lons,
+                         np.zeros(c_lons.shape, dtype=c_lons.dtype)],
+                        axis=-1)
 
     @staticmethod
-    def _build_east(lon):
-        c_lon, s_lon = cos_sin_deg(lon)
-        return np.array([-s_lon, c_lon, 0.0])
+    def _build_norths(c_lats, s_lats, c_lons, s_lons):
+        return np.stack([-s_lats * c_lons,
+                         -s_lats * s_lons,
+                         c_lats],
+                        axis=-1)
 
     @staticmethod
-    def _build_north(lat, lon):
-        c_lat, s_lat = cos_sin_deg(lat)
-        c_lon, s_lon = cos_sin_deg(lon)
-        return np.array([-s_lat * c_lon, -s_lat * s_lon, c_lat])
-
-    @staticmethod
-    def _from_uv_to_3d(u, v, east, north):
-        return np.add(east * u, north * v)
-
-    @staticmethod
-    def _from_3d_to_uv(vector, east, north):
-        return np.dot(vector, east), np.dot(vector, north)
-
-    @staticmethod
-    def _resolve_polar_point(lat, lon):
-        eps = np.finfo(float).eps
-        if np.fabs(np.fabs(lat) - 90.0) <= eps:
-            lon = 0.0
-        return lat, lon
-
-    @staticmethod
-    def _resolve_polar_points(lat, lon):
-        eps = np.finfo(lat.dtype).eps
-        mask = np.fabs(np.fabs(lat) - lat.dtype.type(90)) <= eps
-        lon = np.where(mask,
-                       np.zeros(lon.shape, lon.dtype), lon)
-        return lat, lon
+    def _resolve_polar_points(lats, lons, eps):
+        t90 = lats.dtype.type(90)
+        mask = np.fabs(np.fabs(lats) - t90) <= eps
+        lons = np.where(mask,
+                        np.zeros(lons.shape, lons.dtype), lons)
+        lats = np.where(mask,
+                        np.ones(lats.shape, lats.dtype)
+                        * t90
+                        * np.sign(lats),
+                        lats)
+        return lats, lons
 
 
 class RotorX(Rotor):

@@ -5,12 +5,11 @@ import numpy as np
 from netCDF4 import Dataset
 
 import cmd.common.name_constants as names
+from cmd.common.arg_processors import ListParser
 from cmd.common.misc import create_dir_for_file
 from cmd.common.nc_utils import copy_nc_attributes, \
     init_converter_from_proj_var, DimIterator, add_history, get_history, \
     MAX_COPY_DIM_COUNT, find_dim_indices, add_missing_dim_vars
-from cmd.common.arg_processors import ListParser
-from core.converter import convert_vectors
 
 description = 'projects fields specified on a rectilinear grid in ' \
               'geographical coordinates to a Cartesian plane'
@@ -178,7 +177,7 @@ def cmd(args):
 
     out_lo, out_la = np.meshgrid(in_lon_list, out_lat_list)
     print 'Calculating coordinates of grid points:'
-    xx, yy = converter.convert_points(out_la, out_lo, _progress)
+    xx, yy = converter.convert_points(out_la, out_lo)
     if args.add_lon_cycle:
         xx = _add_lon_cycle(xx)
         yy = _add_lon_cycle(yy)
@@ -305,8 +304,8 @@ def cmd(args):
                 in_u_field = np.swapaxes(in_u_field, lat_idx, lon_idx)
                 in_v_field = np.swapaxes(in_v_field, lat_idx, lon_idx)
 
-            out_x_field, out_y_field = convert_vectors(
-                in_la, in_lo, in_u_field, in_v_field, converter)
+            out_x_field, out_y_field, = \
+                converter.convert_vectors(in_u_field, in_v_field, in_la, in_lo)
 
             if args.add_north_pole:
                 out_x_field = _add_north_pole(out_x_field,

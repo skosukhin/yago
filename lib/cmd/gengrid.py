@@ -39,7 +39,6 @@ from cmd.common.nc_utils import set_generic_lat_attributes, \
     set_generic_lon_attributes, add_or_append_history
 from cmd.common.arg_processors import ListParser, parse_pos_intp, \
     parse_pos_float, init_converter_from_args
-from core.converter import restore_points
 from core.projections import projections
 
 description = 'generates a regular grid in Cartesian coordinates on a ' \
@@ -119,7 +118,7 @@ def cmd(args):
     xx, yy = _generate_cartesian_grid(args.x_start, args.x_count, args.x_step,
                                       args.y_start, args.y_count, args.y_step)
 
-    lats, lons = restore_points(xx, yy, converter)
+    lats, lons = converter.restore_points(xx, yy)
 
     serializer = get_serializer_from_args(args)
     serializer.title = 'Geographic coordinates of points of a regular grid ' \

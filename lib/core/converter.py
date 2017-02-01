@@ -9,8 +9,8 @@ class Converter(object):
     def __init__(self, rotor, projection):
         """
         Constructor of the class.
-        :param rotor: An instance of the class Rotor that performs rotation.
-        :param projection: An instance of the class that performs projection.
+        :param rotor: An instance of the class Rotor
+        :param projection: An instance of the class Projection.
         """
         self._rotor = rotor
         self._projection = projection
@@ -34,110 +34,107 @@ class Converter(object):
     def __hash__(self):
         return hash(tuple(sorted(self.__dict__.items())))
 
-    def convert_point(self, lat, lon):
+    def convert_points(self, lats, lons):
         """
-        Calculates the Cartesian coordinates of the given point.
-        :param lat: Latitude of the point (in degrees).
-        :param lon: Longitude of the point (in degrees).
-        :return: A tuple (x, y) of the Cartesian coordinates of the given point
-        on the projection plane.
+        Calculates Cartesian coordinates of geographical points.
+        :param lats: 2D array of geographical latitudes of the points
+        (in degrees).
+        :param lons: 2D array of geographical longitudes of the points
+        (in degrees).
+        :return: Tuple of 2D arrays (xx, yy) of Cartesian coordinates of the
+        points.
         """
-        return self._projection.convert_point(
-            *self._rotor.convert_point(lat, lon))
-
-    def convert_points(self, lat, lon, progress_callback=None):
-        res_x, res_y = \
-            np.zeros(lat.shape), np.zeros(lat.shape)
-        row_count = lat.shape[0]
-        for i in xrange(row_count):
-            if progress_callback:
-                progress_callback(i, row_count)
-            rlat, rlon = self._rotor.convert_points(lat[i], lon[i])
-            for j in xrange(lat.shape[1]):
+        res_x, res_y = self._rotor.convert_points(lats, lons)
+        for i in xrange(lats.shape[0]):
+            for j in xrange(lats.shape[1]):
                 res_x[i, j], res_y[i, j] = \
-                    self._projection.convert_point(rlat[j], rlon[j])
-        if progress_callback:
-            progress_callback(row_count, row_count)
+                    self._projection.convert_point(res_x[i, j], res_y[i, j])
         return res_x, res_y
 
-    def restore_point(self, x, y):
+    def restore_points(self, xx, yy):
         """
-        Calculates the spherical coordinates of the given point.
-        :param x: Coordinate along the X-axis.
-        :param y: Coordinate along the Y-axis.
-        :return: A tuple (lat, lon) of the spherical coordinates of the given
-        point.
+        Calculates geographical coordinates of Cartesian point.
+        :param xx: 2D array of x-coordinates of the points (in meters).
+        :param yy: 2D array of y-coordinates of the points (in meters).
+        :return: Tuple of 2D arrays (lat, lon) of geographical coordinates of
+        the points.
         """
-        return self._rotor.restore_point(*self._projection.restore_point(x, y))
+        res_lats, res_lons = \
+            np.zeros(xx.shape), np.zeros(xx.shape)
+        for i in xrange(xx.shape[0]):
+            for j in xrange(xx.shape[1]):
+                res_lats[i, j], res_lons[i, j] = \
+                    self._projection.restore_point(xx[i, j], yy[i, j])
+        res_lats, res_lons = self._rotor.restore_points(res_lats, res_lons)
+        return res_lats, res_lons
 
-    def convert_vector(self, u, v, lat, lon, return_point=False):
+    def convert_vectors(self, uu, vv, lats, lons, return_point=False):
         """
-        Calculates the components along the X- and Y- axes of the given vector
-        that originates from the given point.
-        :param u: Zonal component of the vector.
-        :param v: Meridional component of the vector.
-        :param lat: Latitude (in degrees) of the vector's origin.
-        :param lon: Longitude (in degrees) of the vector's origin.
-        :param return_point: Flag that tells the method to return the Cartesian
-        coordinates of the vector's origin along with its components.
-        :return: A tuple of the components of the vector along the X- and Y-
-        axes respectively. If the flag return_point is True, than the result
-        tuple is extended with the Cartesian (x, y) coordinates of the vector's
-        origin.
+        Calculates X- and Y-components of given vectors.
+        :param uu: 2D array of zonal components of the vectors.
+        :param vv: 2D array of meridional components of the vectors.
+        :param lats: 2D array of geographical latitudes of the vectors' origins
+        (in degrees).
+        :param lons: 2D array of geographical longitudes of vectors' origins
+        (in degrees).
+        :param return_point: Flag that tells the method to include Cartesian
+        coordinates of the vectors' origins into the output tuple.
+        :return: Tuple of X- and Y-components of the vectors. If the flag
+        return_point is True, than the result tuple is extended with Cartesian
+        (xx, yy) coordinates of the vectors' origins.
         """
-        rot_u, rot_v, rot_lat, rot_lon = self._rotor.convert_vector(u, v, lat,
-                                                                    lon, True)
-        return self._projection.convert_vector(rot_u, rot_v, rot_lat, rot_lon,
-                                               return_point)
 
-    def restore_vector(self, u, v, x, y, return_point=False):
+        rot_uu, rot_vv, rot_lats, rot_lons = \
+            self._rotor.convert_vectors(uu, vv, lats, lons, True)
+
+        if return_point:
+            for i in xrange(uu.shape[0]):
+                for j in xrange(uu.shape[1]):
+                    (rot_uu[i, j], rot_vv[i, j],
+                     rot_lats[i, j], rot_lons[i, j]) = \
+                        self._projection.convert_vector(rot_uu[i, j],
+                                                        rot_vv[i, j],
+                                                        rot_lats[i, j],
+                                                        rot_lons[i, j],
+                                                        True)
+            return rot_uu, rot_vv, rot_lats, rot_lons
+        else:
+            for i in xrange(uu.shape[0]):
+                for j in xrange(uu.shape[1]):
+                    rot_uu[i, j], rot_vv[i, j] = \
+                        self._projection.convert_vector(rot_uu[i, j],
+                                                        rot_vv[i, j],
+                                                        rot_lats[i, j],
+                                                        rot_lons[i, j],
+                                                        False)
+            return rot_uu, rot_vv
+
+    def restore_vectors(self, uu, vv, xx, yy, return_point=False):
         """
-        Calculates the zonal and meridional components of the given vector that
-        originates from the given point.
-        :param u: Component of the vector along the X-axis.
-        :param v: Component of the vector along the Y-axis.
-        :param x: Coordinate of the vector's origin along the X-axis.
-        :param y: Coordinate of the vector's origin along the Y-axis.
-        :param return_point: Flag that tells the method to return the spherical
-        coordinates of the vector's origin along with its components.
-        :return: A tuple of the zonal and meridional components of the vector
-        respectively. If the flag return_point is True, than the result tuple
-        is extended with the spherical (lat, lon) coordinates of the vector's
-        origin.
+        Calculates zonal and meridional components of given vectors.
+        :param uu: 2D array of x-components of the vectors.
+        :param vv: 2D array of y-components of the vectors.
+        :param xx: 2D array of x-coordinates of the vector's origins
+        (in meters).
+        :param yy: 2D array of y-coordinates of the vector's origins.
+        :param return_point: Flag that tells the method to include geographical
+        coordinates of the vectors' origins into the output tuple.
+        :return: Tuple of zonal and meridional components of the vectors. If
+        the flag return_point is True, than the result tuple is extended with
+        the geographical (lats, lons) coordinates of the vectors' origins.
         """
-        rot_u, rot_v, rot_lat, rot_lon = self._projection.restore_vector(u, v,
-                                                                         x,
-                                                                         y,
-                                                                         True)
-        return self._rotor.restore_vector(rot_u, rot_v, rot_lat, rot_lon,
-                                          return_point)
+        rot_uu, rot_vv = np.zeros(uu.shape), np.zeros(vv.shape)
+        rot_lats, rot_lons = np.zeros(uu.shape), np.zeros(vv.shape)
 
+        for i in xrange(uu.shape[0]):
+            for j in xrange(uu.shape[1]):
+                (rot_uu[i, j], rot_vv[i, j],
+                 rot_lats[i, j], rot_lons[i, j]) = \
+                    self._projection.restore_vector(uu[i, j],
+                                                    vv[i, j],
+                                                    xx[i, j],
+                                                    yy[i, j],
+                                                    True)
 
-def restore_points(xx, yy, converter):
-    """
-    Converts Cartesian coordinates into spherical.
-    :param xx: List of lists with the X-coordinates.
-    :param yy: List of lists with the Y-coordinates.
-    :param converter: Converter to use for the transformations.
-    :return: Two 2D arrays with latitudes and longitudes of the given points.
-    """
-    res_lat, res_lon = \
-        np.zeros((len(xx), len(xx[0]))), np.zeros((len(xx), len(xx[0])))
-    for i in range(len(xx)):
-        for j in range(len(xx[i])):
-            res_lat[i, j], res_lon[i, j] = \
-                converter.restore_point(xx[i][j], yy[i][j])
-    return res_lat, res_lon
-
-
-def convert_vectors(la, lo, uu, vv, converter):
-    rot_uu, rot_vv = np.zeros(la.shape), np.zeros(la.shape)
-    row_count = la.shape[0]
-    for i in xrange(row_count):
-        for j in xrange(la.shape[1]):
-            rot_uu[i, j], rot_vv[i, j] = \
-                converter.convert_vector(uu[i, j],
-                                         vv[i, j],
-                                         la[i, j],
-                                         lo[i, j])
-    return rot_uu, rot_vv
+        return self._rotor.restore_vectors(rot_uu, rot_vv, rot_lats, rot_lons,
+                                           return_point)
