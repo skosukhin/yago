@@ -146,8 +146,8 @@ class Rotor(object):
         orig_normal = Rotor._build_normals(lat, lon)
         rot_normal = np.einsum('ij,...j->...i', rot_matrix, orig_normal)
         return Rotor._resolve_polar_points(
-            np.degrees(np.arcsin(rot_normal[:, :, 2])),
-            np.degrees(np.arctan2(rot_normal[:, :, 1], rot_normal[:, :, 0])))
+            np.degrees(np.arcsin(rot_normal[..., 2])),
+            np.degrees(np.arctan2(rot_normal[..., 1], rot_normal[..., 0])))
 
     @staticmethod
     def _rotate_vector(rot_matrix, lat, lon, u, v, return_point=False):

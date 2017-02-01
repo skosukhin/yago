@@ -45,6 +45,21 @@ class Converter(object):
         return self._projection.convert_point(
             *self._rotor.convert_point(lat, lon))
 
+    def convert_points(self, lat, lon, progress_callback=None):
+        res_x, res_y = \
+            np.zeros(lat.shape), np.zeros(lat.shape)
+        row_count = lat.shape[0]
+        for i in xrange(row_count):
+            if progress_callback:
+                progress_callback(i, row_count)
+            rlat, rlon = self._rotor.convert_points(lat[i], lon[i])
+            for j in xrange(lat.shape[1]):
+                res_x[i, j], res_y[i, j] = \
+                    self._projection.convert_point(rlat[j], rlon[j])
+        if progress_callback:
+            progress_callback(row_count, row_count)
+        return res_x, res_y
+
     def restore_point(self, x, y):
         """
         Calculates the spherical coordinates of the given point.
@@ -113,31 +128,6 @@ def restore_points(xx, yy, converter):
             res_lat[i, j], res_lon[i, j] = \
                 converter.restore_point(xx[i][j], yy[i][j])
     return res_lat, res_lon
-
-
-def convert_points(la, lo, converter, progress_callback=None):
-    """
-    Converts spherical coordinates into Cartesian.
-    :param la: List of lists with latitudes.
-    :param lo: List of lists with longitudes.
-    :param converter: Converter to use for the transformations.
-    :param progress_callback: Pointer to a function that is called after each
-    row is processed.
-    :return: Two 2D arrays with latitudes and longitudes of
-    the given points.
-    """
-    res_x, res_y = \
-        np.zeros((len(la), len(la[0]))), np.zeros((len(la), len(la[0])))
-    row_count = len(la)
-    for i in range(row_count):
-        if progress_callback:
-            progress_callback(i, row_count)
-        for j in range(len(la[i])):
-            res_x[i, j], res_y[i, j] = \
-                converter.convert_point(la[i][j], lo[i][j])
-    if progress_callback:
-        progress_callback(row_count, row_count)
-    return res_x, res_y
 
 
 def convert_vectors(la, lo, uu, vv, converter):

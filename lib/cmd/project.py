@@ -10,7 +10,7 @@ from cmd.common.nc_utils import copy_nc_attributes, \
     init_converter_from_proj_var, DimIterator, add_history, get_history, \
     MAX_COPY_DIM_COUNT, find_dim_indices, add_missing_dim_vars
 from cmd.common.arg_processors import ListParser
-from core.converter import convert_points, convert_vectors
+from core.converter import convert_vectors
 
 description = 'projects fields specified on a rectilinear grid in ' \
               'geographical coordinates to a Cartesian plane'
@@ -178,7 +178,7 @@ def cmd(args):
 
     out_lo, out_la = np.meshgrid(in_lon_list, out_lat_list)
     print 'Calculating coordinates of grid points:'
-    xx, yy = convert_points(out_la, out_lo, converter, _progress)
+    xx, yy = converter.convert_points(out_la, out_lo, _progress)
     if args.add_lon_cycle:
         xx = _add_lon_cycle(xx)
         yy = _add_lon_cycle(yy)
