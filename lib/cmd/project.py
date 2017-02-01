@@ -177,7 +177,17 @@ def cmd(args):
 
     out_lo, out_la = np.meshgrid(in_lon_list, out_lat_list)
     print 'Calculating coordinates of grid points:'
-    xx, yy = converter.convert_points(out_la, out_lo)
+    xx, yy = [], []
+    for i in xrange(out_la.shape[0]):
+        _progress(i, out_la.shape[0])
+        row_xx, row_yy = converter.convert_points(out_la[i, None],
+                                                  out_lo[i, None])
+        xx.append(row_xx[0])
+        yy.append(row_yy[0])
+    xx = np.array(xx)
+    yy = np.array(yy)
+    _progress(out_la.shape[0], out_la.shape[0])
+
     if args.add_lon_cycle:
         xx = _add_lon_cycle(xx)
         yy = _add_lon_cycle(yy)
