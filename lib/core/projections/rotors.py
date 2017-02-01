@@ -1,12 +1,11 @@
 import numpy as np
 
-from core.common import cos_sin_deg
+from core.projections.common import cos_sin_deg
 
 
 class Rotor(object):
     """
-    Class that links regular spherical (lat/lon) coordinates and the
-    corresponding vectors with the lat/lon coordinates in the rotated lat/lon
+    Links the geographical coordinate system with a rotated lat/lon coordinate
     system. Rotations are performed around axes of a 3D right handed Cartesian
     coordinate system. The origin of the Cartesian system is in the center of
     the sphere that approximates the Earth. X-axis points to the intersection
@@ -52,65 +51,83 @@ class Rotor(object):
 
     def convert_points(self, lats, lons):
         """
-        Calculates rotated lat/lon coordinates.
-        :param lats: Geographical latitudes of points (in degrees).
-        :param lons: Geographical longitudes of points (in degrees).
-        :return: A tuple (rot_lats, rot_lons) of rotated coordinates
+        Calculates rotated lat/lon coordinates of points.
+        :param lats: Scalar or array of geographical latitudes of points
         (in degrees).
+        :param lons: Scalar or array of geographical longitudes of points
+        (in degrees).
+        :return: Tuple of scalars or arrays of rotated lat/lon coordinates of
+        the points (in degrees).
         """
         lats, lons = np.asanyarray(lats), np.asanyarray(lons)
         return Rotor._rotate_points(self._rot_matrix_to, lats, lons)
 
     def restore_points(self, rlats, rlons):
         """
-        Calculates geographical lat/lon coordinates.
-        :param rlats: Rotated latitudes of points (in degrees).
-        :param rlons: Rotated longitudes of points (in degrees).
-        :return: A tuple (lat, lon) of geographical lat/lon coordinates
+        Calculates geographical coordinates of points.
+        :param rlats: Scalar or array of rotated latitudes of points
         (in degrees).
+        :param rlons: Scalar or array of rotated longitudes of points
+        (in degrees).
+        :return: Tuple of scalar or arrays of geographical coordinates of the
+        points (in degrees).
         """
         rlats, rlons = np.asanyarray(rlats), np.asanyarray(rlons)
         return Rotor._rotate_points(self._rot_matrix_from, rlats, rlons)
 
-    def convert_vectors(self, uu, vv, lats, lons, return_point=False):
+    def convert_vectors(self, uu, vv, lats, lons, return_points=False):
         """
-        Calculates rotated zonal and meridional components of given vectors.
-        :param uu: Zonal components of vectors.
-        :param vv: Meridional components of vectors.
-        :param lats: Geographical latitudes of vectors' origins (in degrees).
-        :param lons: Geographical longitudes of vectors' origins (in degrees).
-        :param return_point: Flag that tells the method to include rotated
-        lat/lon coordinates of the vectors' origins into the output tuple.
-        :return: A tuple of rotated zonal and meridional components. If the
-        flag return_point is True, than the result tuple is extended with the
-        rotated (rot_lats, rot_lons) coordinates of the vectors' origins.
+        Calculates rotated zonal and meridional components of vectors.
+        :param uu: Scalar or array of zonal components of vectors.
+        :param vv: Scalar or array of meridional components of vectors.
+        :param lats: Scalar or array of geographical latitudes of vectors'
+        origins (in degrees).
+        :param lons: Scalar or array of geographical longitudes of vectors'
+        origins (in degrees).
+        :param return_points: Boolean flag that tells the method to include
+        rotated lat/lon coordinates of the vectors' origins into the output
+        tuple.
+        :return: Tuple of scalar or arrays of rotated zonal and meridional
+        components of the vectors. If the flag return_points is set to True,
+        than the result tuple is extended with scalars or arrays of rotated
+        lat/lon coordinates of the vectors' origins (in degrees).
         """
         uu, vv = np.asanyarray(uu), np.asanyarray(vv)
         lats, lons = np.asanyarray(lats), np.asanyarray(lons)
         return Rotor._rotate_vectors(self._rot_matrix_to,
                                      uu, vv, lats, lons,
-                                     return_point)
+                                     return_points)
 
     def restore_vectors(self, rot_uu, rot_vv, rot_lats, rot_lons,
-                        return_point=False):
+                        return_points=False):
         """
-        Calculates zonal and meridional components of given rotated vectors.
-        :param rot_uu: Rotated zonal component of vectors.
-        :param rot_vv: Rotated meridional component of vectors.
-        :param rot_lats: Rotated latitudes of vectors' origins (in degrees).
-        :param rot_lons: Rotated longitudes of vectors' origins (in degrees).
-        :param return_point: Flag that tells the method include geographical
-        coordinates of the vectors' origins into the output tuple.
-        :return: A tuple of the zonal and meridional components. If the flag
-        return_point is True, than the result tuple is extended with the
-        geographical (lat, lon) coordinates of the vectors' origins.
+        Calculates zonal and meridional components of vectors.
+        :param rot_uu: Scalar or array of rotated zonal component of vectors.
+        :param rot_vv: Scalar or array of rotated meridional component of
+        vectors.
+        :param rot_lats: Scalar or array of rotated latitudes of vectors'
+        origins (in degrees).
+        :param rot_lons: Scalar or array of rotated longitudes of vectors'
+        origins (in degrees).
+        :param return_points: Boolean flag that tells the method to include
+        geographical coordinates of the vectors' origins into the output tuple.
+        :return: Tuple of scalars or arrays of zonal and meridional components
+        of the vectors. If the flag return_points is set to True, than the
+        result tuple is extended with geographical coordinates of the vectors'
+        origins (in degrees).
         """
         return Rotor._rotate_vectors(self._rot_matrix_from,
                                      rot_uu, rot_vv, rot_lats, rot_lons,
-                                     return_point)
+                                     return_points)
 
     @staticmethod
     def chain(*rotors):
+        """
+        Combines a sequence of rotors into a single one.
+        :param rotors: Rotors to be combined in a single rotation object.
+        :return: Instance of the class Rotor that represents a sequence of the
+        given rotations.
+        """
         result = Rotor()
         for rotor in rotors:
             result._rot_axes_ids = result._rot_axes_ids + rotor._rot_axes_ids

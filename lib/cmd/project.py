@@ -176,16 +176,17 @@ def cmd(args):
     converter = init_converter_from_proj_var(grid_proj_var)
 
     out_lo, out_la = np.meshgrid(in_lon_list, out_lat_list)
+
     print 'Calculating coordinates of grid points:'
     xx, yy = [], []
     for i in xrange(out_la.shape[0]):
         _progress(i, out_la.shape[0])
         row_xx, row_yy = converter.convert_points(out_la[i, None],
                                                   out_lo[i, None])
-        xx.append(row_xx[0])
-        yy.append(row_yy[0])
-    xx = np.array(xx)
-    yy = np.array(yy)
+        xx.append(row_xx)
+        yy.append(row_yy)
+    xx = np.concatenate(xx)
+    yy = np.concatenate(yy)
     _progress(out_la.shape[0], out_la.shape[0])
 
     if args.add_lon_cycle:

@@ -1,17 +1,17 @@
 import numpy as np
 
-from core.common import build_2d_rotation_z_rad, cos_sin_deg, HALF_PI
+from core.projections.common import cos_sin_deg, HALF_PI, rotate_vectors
 from core.projections.projection import Projection
-from core.rotors import Rotor, RotorZ, RotorY
+from core.projections.rotors import Rotor, RotorZ, RotorY
 
 
 class PolarStereographicProjection(Projection):
     """
-    Links spherical lat/lon coordinates and the corresponding vectors with
-    Cartesian coordinates onto a Polar stereographic projection plane. The
-    North Pole is always in the center of the projection. The X-axis is aligned
-    from the North Pole to the South Pole over the 90th meridian and the Y-axis
-    is aligned from the same origin to the South Pole over the 180th meridian.
+    Links the geographical coordinate system with a Cartesian coordinate system
+    defined on a Polar stereographic projection plane. The North Pole is always
+    in the center of the projection. The X-axis is aligned from the North Pole
+    to the South Pole over the 90th meridian and the Y-axis is aligned from the
+    same origin to the South Pole over the 180th meridian.
     """
 
     short_name = 'stereo'
@@ -20,7 +20,7 @@ class PolarStereographicProjection(Projection):
 
     def __init__(self, true_lat, earth_radius):
         """
-        The constructor of the class.
+        Constructor of the class.
         :param true_lat: Latitude of true scale (in degrees).
         :param earth_radius: Earth radius (in meters).
         """
@@ -39,107 +39,42 @@ class PolarStereographicProjection(Projection):
 
         return PolarStereographicProjection(true_lats[0], earth_radius)
 
-    def build_rotor(self, orig_lat, orig_lon, add_angle_deg):
-        """
-        The function generates an instance of class Rotor to be used in
-        conjunction with Polar stereographic projection. The obtained
-        instance is the result of three consecutive rotations: around Z-axis,
-        around Y-axis, and again around Z-axis. The first two rotations shift
-        the given point to the North Pole by rotating the coordinate system.
-        The second rotation around Z-axis (the last one among the three) is
-        optional to help users to adjust the orientation of the coordinate
-        grid to account either for the features of the following projection
-        procedure or for the plotting needs.
-        :param orig_lat: Latitude (in degrees) of the origin point of the
-        projection.
-        :param orig_lon: Latitude (in degrees) of the origin point of the
-        projection.
-        :param add_angle_deg: Angle (in degrees) of the optional rotation
-        around Z-axis.
-        :return: Returns an instance of class Rotor that rotates the
-        geographical coordinate system to move the origin point to the North
-        Pole.
-        """
+    @classmethod
+    def build_rotor(cls, center_lat, center_lon, z_angle):
+        return Rotor.chain(RotorZ(180.0 - center_lon),
+                           RotorY(90.0 - center_lat),
+                           RotorZ(z_angle))
 
-        return Rotor.chain(RotorZ(180.0 - orig_lon), RotorY(90.0 - orig_lat),
-                           RotorZ(add_angle_deg))
+    def convert_points(self, lats, lons):
+        c_lats, s_lats = cos_sin_deg(lats)
+        c_lons, s_lons = cos_sin_deg(lons)
+        rr = self.z * self.earth_radius * c_lats / (1.0 + s_lats)
+        xx = rr * s_lons
+        yy = -rr * c_lons
+        return xx, yy
 
-    def convert_point(self, la, lo):
-        """
-        Calculates the Cartesian coordinates of the given point.
-        :param la: Latitude of the point (in degrees).
-        :param lo: Longitude of the point (in degrees).
-        :return: A tuple (x, y) of the Cartesian coordinates of the given point
-        on the projection plane.
-        """
-        c_la, s_la = cos_sin_deg(la)
-        c_lo, s_lo = cos_sin_deg(lo)
-        r = self.z * self.earth_radius * c_la / (1.0 + s_la)
-        x = r * s_lo
-        y = -r * c_lo
-        return x, y
+    def restore_points(self, xx, yy):
+        rr = np.sqrt(xx * xx + yy * yy) / self.earth_radius
+        lats = np.degrees(HALF_PI - 2.0 * np.arctan(rr / self.z))
+        lons = np.degrees(np.arctan2(xx, -yy))
+        return lats, lons
 
-    def restore_point(self, x, y):
-        """
-        Calculates the spherical coordinates of the given point.
-        :param x: Coordinate along the X-axis.
-        :param y: Coordinate along the Y-axis.
-        :return: A tuple (lat, lon) of the spherical coordinates of the given
-        point.
-        """
-        r = np.sqrt(x * x + y * y) / self.earth_radius
-        la = np.degrees(HALF_PI - 2.0 * np.arctan(r / self.z))
-        lo = np.degrees(np.arctan2(x, -y))
-        return la, lo
-
-    def convert_vector(self, u, v, la, lo, return_point=False):
-        """
-        Calculates the components along the X- and Y- axes of the given vector
-        that originates from the given point.
-        :param u: Zonal component of the vector.
-        :param v: Meridional component of the vector.
-        :param la: Latitude (in degrees) of the vector's origin.
-        :param lo: Longitude (in degrees) of the vector's origin.
-        :param return_point: Flag that tells the method to return the Cartesian
-        coordinates of the vector's origin along with its components.
-        :return: A tuple of the components of the vector along the X- and Y-
-        axes respectively. If the flag return_point is True, than the result
-        tuple is extended with the Cartesian (x, y) coordinates of the vector's
-        origin.
-        """
-        rot_angle = np.radians(lo)
-        rot_matrix = build_2d_rotation_z_rad(rot_angle)
-        rot_vec = np.dot(rot_matrix, np.array([u, v]))
-        rot_u = rot_vec[0]
-        rot_v = rot_vec[1]
-        if return_point:
-            x, y = self.convert_point(la, lo)
-            return rot_u, rot_v, x, y
+    def convert_vectors(self, uu, vv, lats, lons, return_points=False):
+        rot_uu, rot_vv = rotate_vectors(uu, vv, lons)
+        if return_points:
+            xx, yy = self.convert_points(lats, lons)
+            return rot_uu, rot_vv, xx, yy
         else:
-            return rot_u, rot_v
+            return rot_uu, rot_vv
 
-    def restore_vector(self, u, v, x, y, return_point=False):
-        """
-        Calculates the zonal and meridional components of the given vector that
-        originates from the given point.
-        :param u: Component of the vector along the X-axis.
-        :param v: Component of the vector along the Y-axis.
-        :param x: Coordinate of the vector's origin along the X-axis.
-        :param y: Coordinate of the vector's origin along the Y-axis.
-        :param return_point: Flag that tells the method to return the spherical
-        coordinates of the vector's origin along with its components.
-        :return: A tuple of the zonal and meridional components of the vector
-        respectively. If the flag return_point is True, than the result tuple
-        is extended with the spherical (lat, lon) coordinates of the vector's
-        origin.
-        """
-        la, lo = self.restore_point(x, y)
-        rot_angle = -np.radians(lo)
-        rot_matrix = build_2d_rotation_z_rad(rot_angle)
-        rot_vec = np.dot(rot_matrix, np.array([u, v]))
-        rot_u = rot_vec[0]
-        rot_v = rot_vec[1]
-        if return_point:
-            return rot_u, rot_v, la, lo
+    def restore_vectors(self, uu, vv, xx, yy, return_points=False):
+        lats, lons = self.restore_points(xx, yy)
+        c_lons, s_lons = cos_sin_deg(-lons)
+        rot_matrices = np.asanyarray([[c_lons, -s_lons], [s_lons, c_lons]])
+        rot_vecs = np.einsum('ij...,j...', rot_matrices, np.stack([uu, vv]))
+        rot_uu = rot_vecs[..., 0]
+        rot_vv = rot_vecs[..., 1]
+        if return_points:
+            return rot_uu, rot_vv, lats, lons
         else:
-            return rot_u, rot_v
+            return rot_uu, rot_vv

@@ -93,7 +93,7 @@ def setup_parser(parser):
                       'degrees) of true scale; number of values in the list ' \
                       'depend on the projection to be used; if the list is ' \
                       'empty than the default values that depend on the ' \
-                      'projection are used (default: %%(default)s)'\
+                      'projection are used (default: %%(default)s)' \
                       % float_list_parser.separator
     parser.add_argument('--true-scale-lats',
                         help=true_scale_help,
@@ -138,16 +138,11 @@ def cmd(args):
         re.sub(r'\s{2,}', ' ',
                converter.projection.__doc__.replace('\n', ' ')).strip() + \
         ' ' \
-        'To build a projection with a given point (origin_lat;origin_lon) ' \
-        'in its origin, series of rotations of the spherical coordinate ' \
-        'system are applied beforehand to move the origin point of the grid ' \
-        'on the position of the North Pole. The rotations are performed ' \
-        'around axes of a 3D right handed Cartesian coordinate system. The ' \
-        'origin of the Cartesian system is in the center of the sphere that ' \
-        'approximates the Earth. X-axis points to the intersection of the ' \
-        'equator and the Greenwich Meridian; Y-axis points to the ' \
-        'intersection of the equator and the 90th eastern meridian; Z-axis ' \
-        'points to the North Pole.'
+        'Before applying the projection, a series of rotations of the ' \
+        'geographical coordinate system is performed to shift the point ' \
+        '(origin_lat;origin_lon) to its center and to adjust the ' \
+        'orientation of the axes of the projection plane with respect to ' \
+        'the surface.'
     serializer.mapping_name = (converter.projection.standard_name +
                                '+rotated_latitude_longitude')
     serializer.earth_radius = args.earth_radius

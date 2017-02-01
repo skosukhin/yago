@@ -2,8 +2,8 @@ from datetime import datetime
 
 import numpy as np
 
-from core.converter import Converter
 from core.projections import projections
+from core.projections.converter import Converter
 
 
 class ListParser(object):
@@ -81,8 +81,8 @@ def parse_slice(string):
 
 
 def init_converter_from_args(args):
-    p = projections[args.proj_name].unified_init(args.earth_radius,
-                                                 args.true_scale_lats)
-    r = p.build_rotor(args.orig_lat, args.orig_lon, args.adjust_angle)
+    proj_cls = projections[args.proj_name]
+    p = proj_cls.unified_init(args.earth_radius, args.true_scale_lats)
+    r = proj_cls.build_rotor(args.orig_lat, args.orig_lon, args.adjust_angle)
 
     return Converter(r, p)

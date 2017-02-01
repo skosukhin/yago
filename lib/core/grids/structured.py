@@ -2,7 +2,7 @@ from itertools import izip
 
 import numpy as np
 
-from core.common.kd_tree import KDTree, BoundingBox
+from core.grids.common import KDTree, BoundingBox
 from core.grids.grid import Grid
 
 

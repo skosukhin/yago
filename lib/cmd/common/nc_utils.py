@@ -6,9 +6,9 @@ import numpy as np
 from netcdftime import utime
 
 import cmd.common.name_constants as names
-from core.converter import Converter
 from core.projections import projections
-from core.rotors import Rotor, RotorX, RotorY, RotorZ
+from core.projections.converter import Converter
+from core.projections.rotors import Rotor, RotorX, RotorY, RotorZ
 
 # Maximum number of dimensions to copy during one read/write operation
 MAX_COPY_DIM_COUNT = 2
