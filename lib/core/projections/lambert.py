@@ -34,29 +34,36 @@ class LambertConformalProjection(Projection):
         phi1_rad = np.radians(true_lat1)
         phi2_rad = np.radians(true_lat2)
         self.earth_radius = earth_radius
+        self.true_scale_lats = [true_lat1, true_lat2]
 
         if np.fabs(true_lat1 - true_lat2) < np.finfo(float).eps:
             self.n = np.sin(phi1_rad)
         else:
-            self.n = \
-                (np.log(np.cos(phi1_rad) / np.cos(phi2_rad)) /
-                 (np.log(np.tan(QUARTER_PI + phi2_rad / 2.0) /
-                         np.tan(QUARTER_PI + phi1_rad / 2.0))))
+            self.n = (np.log(np.cos(phi1_rad) / np.cos(phi2_rad)) /
+                      np.log(
+                          np.tan(QUARTER_PI + phi2_rad / 2.0) /
+                          np.tan(QUARTER_PI + phi1_rad / 2.0)))
         self.n_sign = np.sign(self.n)
-        self.f = \
-            (np.cos(phi1_rad) *
-             np.power(np.tan(QUARTER_PI + phi1_rad / 2.0), self.n) / self.n)
-        self.rho0 = \
-            (self.f *
-             np.power(1.0 /
-                      np.tan(QUARTER_PI +
-                             np.radians(
-                                 LambertConformalProjection._CENTER_LAT) /
-                             2.0),
-                      self.n))
+        self.f = (np.cos(phi1_rad) *
+                  np.power(np.tan(QUARTER_PI + phi1_rad / 2.0), self.n) /
+                  self.n)
+        self.rho0 = (self.f *
+                     np.power(np.tan(
+                         QUARTER_PI +
+                         np.radians(
+                             LambertConformalProjection._CENTER_LAT) / 2.0),
+                         -self.n))
 
     @classmethod
-    def init(cls, earth_radius, true_lats):
+    def unified_init(cls, earth_radius, true_lats):
+        if len(true_lats) == 0:
+            true_lats = [LambertConformalProjection._CENTER_LAT,
+                         LambertConformalProjection._CENTER_LAT]
+        elif len(true_lats) != 2:
+            raise Exception('The list of true scales for Lambert conformal '
+                            'projection must either contain exactly two '
+                            'values or be empty.')
+
         return LambertConformalProjection(true_lats[0], true_lats[1],
                                           earth_radius)
 
@@ -154,20 +161,18 @@ class LambertConformalProjection(Projection):
             return rot_u, rot_v
 
     def _convert_point_unit(self, la, lo):
-        rho = \
-            self.f * \
-            np.power(1.0 / np.tan(QUARTER_PI + np.radians(la) / 2.0), self.n)
+        rho = self.f * np.power(np.tan(QUARTER_PI + np.radians(la) / 2.0),
+                                -self.n)
         nlo = self.n * np.radians(lo)
         x = rho * np.sin(nlo)
         y = self.rho0 - rho * np.cos(nlo)
         return x, y
 
     def _restore_point_unit(self, x, y):
-        rho = \
-            self.n_sign * \
-            np.sqrt(np.power(x, 2.0) + np.power(self.rho0 - y, 2.0))
+        rho = self.n_sign * np.sqrt(np.power(x, 2.0) +
+                                    np.power(self.rho0 - y, 2.0))
         theta = np.arctan(x / (self.rho0 - y))
-        la = \
-            2.0 * np.arctan(np.power(self.f / rho, 1.0 / self.n)) - np.pi / 2.0
+        la = (2.0 * np.arctan(np.power(self.f / rho, 1.0 / self.n)) -
+              np.pi / 2.0)
         lo = theta / self.n
         return np.degrees(la), np.degrees(lo)

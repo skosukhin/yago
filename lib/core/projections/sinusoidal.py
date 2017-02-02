@@ -14,9 +14,11 @@ class SinusoidalProjection(Projection):
     same origin to the northern hemisphere along the Greenwich Meridian.
     """
 
-    short_name = 'sinusoidal'
+    short_name = 'sinus'
     long_name = 'Sinusoidal'
     standard_name = 'sinusoidal'
+
+    _TRUE_SCALE_LAT = 0.0
 
     def __init__(self, earth_radius):
         """
@@ -24,9 +26,24 @@ class SinusoidalProjection(Projection):
         :param earth_radius: Earth radius (in meters).
         """
         self.earth_radius = earth_radius
+        self.true_scale_lats = [SinusoidalProjection._TRUE_SCALE_LAT]
 
     @classmethod
-    def init(cls, earth_radius, true_lats):
+    def unified_init(cls, earth_radius, true_lats):
+        if len(true_lats) == 1:
+            eps = np.finfo(SinusoidalProjection._TRUE_SCALE_LAT).eps
+            diff = np.fabs(true_lats[0] - SinusoidalProjection._TRUE_SCALE_LAT)
+            if diff >= eps:
+                raise Exception('True scale for Sinusoidal projection must '
+                                'be equal to ' +
+                                str(SinusoidalProjection._TRUE_SCALE_LAT) +
+                                '.')
+
+        elif len(true_lats) != 0:
+            raise Exception('The list of true scales for Sinusoidal '
+                            'projection must either contain exactly one '
+                            'value or be empty.')
+
         return SinusoidalProjection(earth_radius)
 
     def build_rotor(self, orig_lat, orig_lon, add_angle_deg):

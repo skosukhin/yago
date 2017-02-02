@@ -25,10 +25,18 @@ class PolarStereographicProjection(Projection):
         :param earth_radius: Earth radius (in meters).
         """
         self.z = np.sin(np.radians(true_lat)) + 1.0
+        self.true_scale_lats = [true_lat]
         self.earth_radius = earth_radius
 
     @classmethod
-    def init(cls, earth_radius, true_lats):
+    def unified_init(cls, earth_radius, true_lats):
+        if len(true_lats) == 0:
+            true_lats = [90.0]
+        elif len(true_lats) != 1:
+            raise Exception('The list of true scales for Polar stereographic '
+                            'projection must either contain exactly one '
+                            'value or be empty.')
+
         return PolarStereographicProjection(true_lats[0], earth_radius)
 
     def build_rotor(self, orig_lat, orig_lon, add_angle_deg):

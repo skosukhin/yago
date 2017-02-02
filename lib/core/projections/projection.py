@@ -4,6 +4,9 @@ class Projection(object):
     long_name = None
     standard_name = None
 
+    true_scale_lats = None
+    earth_radius = None
+
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.__dict__ == other.__dict__
@@ -16,7 +19,7 @@ class Projection(object):
         return hash(tuple(sorted(self.__dict__.items())))
 
     @classmethod
-    def init(cls, earth_radius, true_lats):
+    def unified_init(cls, earth_radius, true_lats):
         raise NotImplementedError()
 
     def build_rotor(self, orig_lat, orig_lon, add_angle_deg):

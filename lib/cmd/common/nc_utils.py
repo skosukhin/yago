@@ -165,14 +165,9 @@ def gen_hist_string(ignored_args=None):
 def init_converter_from_proj_var(proj_var):
     r = _decode_rotor(proj_var.rot_axes, proj_var.rot_angles_deg)
 
-    standard_parallel_list = proj_var.standard_parallel
-    try:
-        standard_parallel_list[0]
-    except:
-        standard_parallel_list = [standard_parallel_list]
-
-    p = projections[proj_var.short_name].init(proj_var.earth_radius,
-                                              standard_parallel_list)
+    standard_parallel_list = np.atleast_1d(proj_var.standard_parallel)
+    p = projections[proj_var.short_name].unified_init(proj_var.earth_radius,
+                                                      standard_parallel_list)
 
     return Converter(r, p)
 

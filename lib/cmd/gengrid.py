@@ -24,10 +24,10 @@ For Lambert:
 --true-scale-lats=33.9172241958,54.4707286812
 
 Example commands:
-gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=stereo --true-scale-lats=71.6577131288 --output-file=grid.nc --output-format=nc
-gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=mercator --true-scale-lats=10.6352550282 --output-file=grid.nc  --output-format=nc
-gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=lambert --true-scale-lats=33.9172241958;54.4707286812 --output-file=grid.nc  --output-format=nc
-gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=sinusoidal --true-scale-lats= --output-file=grid_sinus.nc  --output-format=nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=stereo --true-scale-lats=71.6577131288 --output-file=grid_stereo.nc --output-format=nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=mercator --true-scale-lats=10.6352550282 --output-file=grid_mercator.nc  --output-format=nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=lambert --true-scale-lats=33.9172241958;54.4707286812 --output-file=grid_lambert.nc  --output-format=nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=sinus --output-file=grid_sinus.nc  --output-format=nc
 """
 
 import re
@@ -54,11 +54,6 @@ def setup_parser(parser):
                                 help='name of projection to be used for grid '
                                      'generation',
                                 choices=projections.keys(), required=True)
-    mandatory_args.add_argument('--true-scale-lats',
-                                help='semicolon-separated list of '
-                                     'projection\'s latitudes (in degrees) of '
-                                     'true scale',
-                                type=ListParser(np.float64), required=True)
     mandatory_args.add_argument('--orig-lat',
                                 help='latitude (in degrees) of the projection '
                                      'center',
@@ -93,6 +88,16 @@ def setup_parser(parser):
                                 help='output filename',
                                 required=True)
 
+    float_list_parser = ListParser(np.float64)
+    true_scale_help = '\'%s\'-separated list of projection\'s latitudes (in ' \
+                      'degrees) of true scale; number of values in the list ' \
+                      'depend on the projection to be used; if the list is ' \
+                      'empty than the default values that depend on the ' \
+                      'projection are used (default: %%(default)s)'\
+                      % float_list_parser.separator
+    parser.add_argument('--true-scale-lats',
+                        help=true_scale_help,
+                        type=float_list_parser, default=[])
     parser.add_argument('--earth-radius',
                         help='earth radius (in meters) to be used for '
                              'projection (default: %(default)s)',
@@ -148,7 +153,7 @@ def cmd(args):
     serializer.earth_radius = args.earth_radius
     serializer.orig_lat = args.orig_lat
     serializer.orig_lon = args.orig_lon
-    serializer.standard_parallels = args.true_scale_lats
+    serializer.standard_parallels = converter.projection.true_scale_lats
     serializer.rot_axes_ids = converter.rotor.rot_axes_ids
     serializer.rot_angles_deg = converter.rotor.rot_angles_deg
     serializer.proj_short_name = converter.projection.short_name

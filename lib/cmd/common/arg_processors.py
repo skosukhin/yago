@@ -81,8 +81,8 @@ def parse_slice(string):
 
 
 def init_converter_from_args(args):
-    p = projections[args.proj_name].init(args.earth_radius,
-                                         args.true_scale_lats)
+    p = projections[args.proj_name].unified_init(args.earth_radius,
+                                                 args.true_scale_lats)
     r = p.build_rotor(args.orig_lat, args.orig_lon, args.adjust_angle)
 
     return Converter(r, p)
