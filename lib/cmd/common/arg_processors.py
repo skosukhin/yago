@@ -15,7 +15,7 @@ class ListParser(object):
         str_arr = args[0].split(self.separator)
 
         if self.val_type:
-            return map(self.val_type, str_arr)
+            return [self.val_type(val) for val in str_arr if val]
         else:
             return str_arr
 
