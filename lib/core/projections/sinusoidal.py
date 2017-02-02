@@ -70,7 +70,7 @@ class SinusoidalProjection(Projection):
         """
         la_rad = y / self.earth_radius
         lo = np.degrees(x / (self.earth_radius * np.cos(la_rad)))
-        return np.radians(la_rad), lo
+        return np.degrees(la_rad), lo
 
     def convert_vector(self, u, v, la, lo, return_point=False):
         """

@@ -51,7 +51,8 @@ class LambertConformalProjection(Projection):
              np.power(1.0 /
                       np.tan(QUARTER_PI +
                              np.radians(
-                                 LambertConformalProjection.CENTER_LAT) / 2.0),
+                                 LambertConformalProjection._CENTER_LAT) /
+                             2.0),
                       self.n))
 
     @classmethod

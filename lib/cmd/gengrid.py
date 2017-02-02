@@ -26,7 +26,8 @@ For Lambert:
 Example commands:
 gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=stereo --true-scale-lats=71.6577131288 --output-file=grid.nc --output-format=nc
 gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=mercator --true-scale-lats=10.6352550282 --output-file=grid.nc  --output-format=nc
-gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=lambert --true-scale-lats=33.9172241958,54.4707286812 --output-file=grid.nc  --output-format=nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=lambert --true-scale-lats=33.9172241958;54.4707286812 --output-file=grid.nc  --output-format=nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=sinusoidal --true-scale-lats= --output-file=grid_sinus.nc  --output-format=nc
 """
 
 import re
