@@ -135,7 +135,3 @@ def _init_grid(x_var, y_var):
     else:
         return RectilinearGrid(x=x_var[:], y=y_var[:]), \
                y_var.dimensions + x_var.dimensions
-
-
-def _generate_names(prefix, count):
-    return ['%s%i' % (prefix, i) for i in xrange(count)]
