@@ -2,6 +2,7 @@ import numpy as np
 import shutil
 from netCDF4 import Dataset
 
+from cmd.common.misc import create_dir_for_file
 from cmd.common.nc_utils import add_or_append_history
 from cmd.common.arg_processors import ListParser
 
@@ -27,6 +28,7 @@ def cmd(args):
     else:
         data_var_names = args.data_var_names
 
+    create_dir_for_file(args.output_file)
     shutil.copyfile(args.input_files[0], args.output_file)
 
     output_ds = Dataset(args.output_file, 'r+')
