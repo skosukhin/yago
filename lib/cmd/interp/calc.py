@@ -3,9 +3,8 @@ from netCDF4 import Dataset
 
 import cmd.common.name_constants as names
 from cmd.common.misc import create_dir_for_file
-from cmd.common.nc_utils import add_or_append_history, DimIterator
-from core.grids.rectilinear import RectilinearGrid
-from core.grids.structured import StructuredGrid
+from cmd.common.nc_utils import add_or_append_history, DimIterator, \
+    init_grid_from_vars
 
 description = 'calculates weights for the following interpolation'
 
@@ -49,14 +48,14 @@ def setup_parser(parser):
 def cmd(args):
     in_grid_ds = Dataset(args.in_grid_file, 'r')
     in_grid, in_grid_dim_names = \
-        _init_grid(in_grid_ds.variables[args.in_x_name],
-                   in_grid_ds.variables[args.in_y_name])
+        init_grid_from_vars(in_grid_ds.variables[args.in_x_name],
+                            in_grid_ds.variables[args.in_y_name])
     in_grid_ds.close()
 
     out_grid_ds = Dataset(args.out_grid_file, 'r')
     out_grid, out_grid_dim_names = \
-        _init_grid(out_grid_ds.variables[args.out_x_name],
-                   out_grid_ds.variables[args.out_y_name])
+        init_grid_from_vars(out_grid_ds.variables[args.out_x_name],
+                            out_grid_ds.variables[args.out_y_name])
     out_grid_ds.close()
 
     if len(in_grid.shape) != len(out_grid.shape):
@@ -122,16 +121,3 @@ def cmd(args):
 
     add_or_append_history(out_ds)
     out_ds.close()
-
-
-def _init_grid(x_var, y_var):
-    if len(x_var.shape) != len(y_var.shape) or len(x_var.shape) > 2:
-        raise Exception()
-
-    if len(x_var.shape) == 2:
-        if x_var.dimensions != y_var.dimensions:
-            raise Exception()
-        return StructuredGrid(xx=x_var[:], yy=y_var[:]), x_var.dimensions
-    else:
-        return RectilinearGrid(x=x_var[:], y=y_var[:]), \
-               y_var.dimensions + x_var.dimensions

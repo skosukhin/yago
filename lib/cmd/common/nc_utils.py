@@ -6,6 +6,8 @@ import numpy as np
 from netcdftime import utime
 
 import cmd.common.name_constants as names
+from core.grids.rectilinear import RectilinearGrid
+from core.grids.structured import StructuredGrid
 from core.projections import projections
 from core.projections.converter import Converter
 from core.projections.rotors import Rotor, RotorX, RotorY, RotorZ
@@ -221,6 +223,19 @@ def add_missing_dim_vars(src_ds, dst_ds, dim_names):
                             dimensions=src_dim_var.dimensions)
                     copy_nc_attributes(src_dim_var, dst_dim_var)
                     dst_dim_var[:] = src_dim_var[:]
+
+
+def init_grid_from_vars(x_var, y_var):
+    if len(x_var.shape) != len(y_var.shape) or len(x_var.shape) > 2:
+        raise Exception()
+
+    if len(x_var.shape) == 2:
+        if x_var.dimensions != y_var.dimensions:
+            raise Exception()
+        return StructuredGrid(xx=x_var[:], yy=y_var[:]), x_var.dimensions
+    else:
+        return RectilinearGrid(x=x_var[:], y=y_var[:]), \
+               y_var.dimensions + x_var.dimensions
 
 
 def _decode_rotor(rot_axes_ids, rot_angles_deg):
