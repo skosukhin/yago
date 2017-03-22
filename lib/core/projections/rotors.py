@@ -116,6 +116,8 @@ class Rotor(object):
         result tuple is extended with geographical coordinates of the vectors'
         origins (in degrees).
         """
+        rot_uu, rot_vv = np.asanyarray(rot_uu), np.asanyarray(rot_vv)
+        rot_lats, rot_lons = np.asanyarray(rot_lats), np.asanyarray(rot_lons)
         return Rotor._rotate_vectors(self._rot_matrix_from,
                                      rot_uu, rot_vv, rot_lats, rot_lons,
                                      return_points)
