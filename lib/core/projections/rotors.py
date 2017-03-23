@@ -1,6 +1,6 @@
 import numpy as np
 
-from core.projections.common import cos_sin_deg
+from core.common import cos_sin_deg, NORTH_POLE_TOLERANCE
 
 
 class Rotor(object):
@@ -13,8 +13,6 @@ class Rotor(object):
     intersection of the equator and the 90th eastern meridian; Z-axis points to
     the Northern Pole.
     """
-
-    _NORTH_POLE_TOLERANCE = 1e-5
 
     def __init__(self):
         self._rot_axes_ids = ()
@@ -145,7 +143,7 @@ class Rotor(object):
 
     @staticmethod
     def _rotate_points(rot_matrix, lats, lons):
-        np_tol = lats.dtype.type(Rotor._NORTH_POLE_TOLERANCE)
+        np_tol = lats.dtype.type(NORTH_POLE_TOLERANCE)
         lats, lons = Rotor._resolve_polar_points(lats, lons, np_tol)
         c_lats, s_lats = cos_sin_deg(lats)
         c_lons, s_lons = cos_sin_deg(lons)
@@ -158,7 +156,7 @@ class Rotor(object):
 
     @staticmethod
     def _rotate_vectors(rot_matrix, uu, vv, lats, lons, return_point=False):
-        np_tol = lats.dtype.type(Rotor._NORTH_POLE_TOLERANCE)
+        np_tol = lats.dtype.type(NORTH_POLE_TOLERANCE)
         lats, lons = Rotor._resolve_polar_points(lats, lons, np_tol)
         c_lats, s_lats = cos_sin_deg(lats)
         c_lons, s_lons = cos_sin_deg(lons)

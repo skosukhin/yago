@@ -5,7 +5,7 @@ import numpy as np
 from netCDF4 import Dataset
 
 import cmd.common.name_constants as names
-from cmd.common.arg_processors import ListParser
+from cmd.common.arg_processors import ListParser, split_scalar_and_vector_vars
 from cmd.common.misc import create_dir_for_file
 from cmd.common.nc_utils import copy_nc_attributes, \
     init_converter_from_proj_var, DimIterator, add_history, get_history, \
@@ -96,18 +96,7 @@ def cmd(args):
         raise Exception('Latitude and longitude dimension variables cannot '
                         'be specified along the same dimension.')
 
-    scalar_vars = []
-    vector_vars = []
-
-    if args.var_names:
-        for var_name_list in args.var_names:
-            var_names = var_name_list.split('+')
-            if len(var_names) == 1:
-                scalar_vars.extend(var_names)
-            elif len(var_names) == 2:
-                vector_vars.append(var_names)
-            elif len(var_names) > 2:
-                raise Exception()
+    scalar_vars, vector_vars = split_scalar_and_vector_vars(args.var_names)
 
     create_dir_for_file(args.output_file)
     out_ds = Dataset(args.output_file, 'w')

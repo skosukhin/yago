@@ -1,6 +1,6 @@
 import numpy as np
 
-from core.projections.common import QUARTER_PI, rotate_vectors
+from core.common import QUARTER_PI, rotate_vectors
 from core.projections.projection import Projection
 from core.projections.rotors import Rotor, RotorZ, RotorY
 

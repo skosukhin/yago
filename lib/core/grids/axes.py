@@ -89,3 +89,21 @@ class RegularAxis(RectilinearAxis):
 
         w_r = (x - self[l_idx]) / self.step
         return [l_idx, l_idx + 1], [1 - w_r, w_r]
+
+
+def build_axis(axis_values):
+    count = len(axis_values)
+    first = axis_values[0]
+    step = axis_values[1] - axis_values[0]
+
+    result = RegularAxis(first, count, step)
+
+    try:
+        eps = np.finfo(step).eps
+    except:
+        eps = 0
+
+    if np.allclose(axis_values, result, atol=eps):
+        return result
+    else:
+        return RectilinearAxis(axis_values)

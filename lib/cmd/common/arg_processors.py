@@ -86,3 +86,20 @@ def init_converter_from_args(args):
     r = proj_cls.build_rotor(args.orig_lat, args.orig_lon, args.adjust_angle)
 
     return Converter(r, p)
+
+
+def split_scalar_and_vector_vars(var_names):
+    scalar_vars = []
+    vector_vars = []
+
+    if var_names:
+        for var_name_list in var_names:
+            var_names = var_name_list.split('+')
+            if len(var_names) == 1:
+                scalar_vars.extend(var_names)
+            elif len(var_names) == 2:
+                vector_vars.append(var_names)
+            elif len(var_names) > 2:
+                raise Exception()
+
+    return scalar_vars, vector_vars
