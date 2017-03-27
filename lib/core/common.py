@@ -11,7 +11,9 @@ def cos_sin_deg(angle_deg):
     :param angle_deg: Scalar or array of angles (in degrees).
     :return: Tuple of cosines and sinuses of the angles.
     """
-    angle_rad = np.radians(angle_deg)
+    # We want float64 precision here.
+    angle_rad = np.empty(angle_deg.shape)
+    np.radians(angle_deg, angle_rad)
     return np.cos(angle_rad), np.sin(angle_rad)
 
 
