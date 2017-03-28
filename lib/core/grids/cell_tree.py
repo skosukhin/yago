@@ -4,36 +4,59 @@ import numpy as np
 
 
 class CellTree(object):
-    def __init__(self, coords, max_leaf_size, max_depth):
+    def __init__(self, coords, no_gap_along_axis, max_leaf_size, max_depth):
         if coords is None or max_leaf_size < 1 or max_depth < 0:
             raise Exception()
 
         if coords.shape[-1] != len(coords.shape[:-1]):
             raise Exception()
 
+        if no_gap_along_axis is not None \
+                and (no_gap_along_axis < 0
+                     or no_gap_along_axis >= len(coords.shape[:-1])):
+            raise Exception()
+
         if coords.shape[-1] != 2:
             raise NotImplementedError('Only 2D grids are supported.')
 
         self.coords = coords
-        self.root = CellTree._build(self.coords, max_leaf_size, max_depth)
+        self.root = CellTree._build(self.coords, no_gap_along_axis,
+                                    max_leaf_size, max_depth)
 
     def find_cell(self, v):
         return self.root.find_cell(self.coords, v)
 
     @staticmethod
-    def _build(coords, max_leaf_size, max_depth):
+    def _build(coords, no_gap_along_axis, max_leaf_size, max_depth):
         vertex_slices = [[slice(0, -1) if dim_idx == 0 else slice(1, None)
                           for dim_idx in idx]
                          for idx in np.ndindex((2,) * (len(coords.shape) - 1))]
+
+        if no_gap_along_axis is not None:
+            coords = np.ma.append(coords,
+                                  np.expand_dims(
+                                      np.take(coords, 0,
+                                              axis=no_gap_along_axis),
+                                      axis=no_gap_along_axis),
+                                  axis=no_gap_along_axis)
+
         maximums = np.maximum.reduce(
             [coords[slc] for slc in vertex_slices])
-        indices = np.rollaxis(
-            np.indices(maximums.shape[:-1]), 0,
-            len(maximums.shape)).reshape((-1, maximums.shape[-1]))
-        maximums = maximums.reshape((-1, coords.shape[-1]))
         minimums = np.minimum.reduce(
-            [coords[slc] for slc in vertex_slices]).reshape(
-            (-1, coords.shape[-1]))
+            [coords[slc] for slc in vertex_slices])
+        indices = np.indices(maximums.shape[:-1])
+
+        if no_gap_along_axis is not None:
+            # Change the last indices along the extended axis to -1
+            slc = [slice(0,None)] * len(maximums.shape)
+            slc[0] = no_gap_along_axis
+            slc[no_gap_along_axis + 1] = -1
+            indices[tuple(slc)] = -1
+        indices = np.rollaxis(indices, 0, len(maximums.shape))
+
+        indices = indices.reshape((-1, maximums.shape[-1]))
+        maximums = maximums.reshape((-1, coords.shape[-1]))
+        minimums = minimums.reshape((-1, coords.shape[-1]))
         centers = (maximums + minimums) / 2.0
 
         return _CellNode.build(indices, maximums, minimums, centers,

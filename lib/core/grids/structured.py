@@ -30,6 +30,11 @@ class StructuredGrid(Grid):
     def __getitem__(self, item):
         return self._data[item]
 
+    def init_cell_locator(self, no_gap_along_axis=None):
+        self._loc_tree = CellTree(self._data, no_gap_along_axis,
+                                  StructuredGrid._MAX_LOC_TREE_LEAF_SIZE,
+                                  StructuredGrid._MAX_LOC_TREE_DEPTH)
+
     def calc_weights(self, x, y):
         cell = self._find_cell(x, y)
         if cell[0] is None:
@@ -54,8 +59,5 @@ class StructuredGrid(Grid):
 
     def _find_cell(self, x, y):
         if self._loc_tree is None:
-            self._loc_tree = CellTree(self._data,
-                                      StructuredGrid._MAX_LOC_TREE_LEAF_SIZE,
-                                      StructuredGrid._MAX_LOC_TREE_DEPTH)
-
+            raise Exception('Cell locator is not initialized.')
         return self._loc_tree.find_cell([x, y])

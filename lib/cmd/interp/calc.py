@@ -4,7 +4,7 @@ from netCDF4 import Dataset
 import cmd.common.name_constants as names
 from cmd.common.misc import create_dir_for_file
 from cmd.common.nc_utils import add_or_append_history, DimIterator, \
-    init_grid_from_vars
+    init_grid_from_vars, find_dim_indices
 
 description = 'calculates weights for the following interpolation'
 
@@ -12,34 +12,38 @@ description = 'calculates weights for the following interpolation'
 def setup_parser(parser):
     mandatory_args = parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('--in-grid-file',
-                                help='name of netcdf file that contains '
+                                help='name of a netcdf file that contains '
                                      'coordinates of the input grid',
                                 required=True)
     mandatory_args.add_argument('--out-grid-file',
-                                help='name of netcdf file that contains '
+                                help='name of a netcdf file that contains '
                                      'coordinates of the output grid',
                                 required=True)
     mandatory_args.add_argument('--weight-file',
-                                help='name of netcdf file that interpolation '
-                                     'weights will be saved to',
+                                help='name of a netcdf file that '
+                                     'interpolation weights will be saved to',
                                 required=True)
+    parser.add_argument('--no-gap-dim',
+                        help='name of a netcdf dimension along which the '
+                             'input grid contains cells between the last and '
+                             'the first grid points')
     parser.add_argument('--in-x-name',
-                        help='name of netcdf variable that contains '
+                        help='name of a netcdf variable that contains '
                              'x-coordinates of the input grid (default: '
                              '\'%(default)s\')',
                         default=names.DIMVAR_X)
     parser.add_argument('--in-y-name',
-                        help='name of netcdf variable that contains '
+                        help='name of a netcdf variable that contains '
                              'y-coordinates of the input grid (default: '
                              '\'%(default)s\')',
                         default=names.DIMVAR_Y)
     parser.add_argument('--out-x-name',
-                        help='name of netcdf variable that contains '
+                        help='name of a netcdf variable that contains '
                              'x-coordinates of the output grid (default: '
                              '\'%(default)s\')',
                         default=names.DIMVAR_X)
     parser.add_argument('--out-y-name',
-                        help='name of netcdf variable that contains '
+                        help='name of a netcdf variable that contains '
                              'y-coordinates of the output grid (default: '
                              '\'%(default)s\')',
                         default=names.DIMVAR_Y)
@@ -70,6 +74,13 @@ def cmd(args):
                                (in_grid.cell_vert_count,),
                                dtype=np.float64)
 
+    no_gap_axis = None
+    if args.no_gap_dim is not None:
+        no_gap_axis = find_dim_indices([args.no_gap_dim], in_grid_dim_names)[0]
+        if no_gap_axis is None:
+            raise Exception('Dimension %s is not found.' % args.no_gap_dim)
+
+    in_grid.init_cell_locator(no_gap_axis)
     op_iter = DimIterator(out_grid.shape)
     for slc in op_iter.slice_tuples():
         cell_indices, cell_weights = in_grid.calc_weights(*out_grid[slc])

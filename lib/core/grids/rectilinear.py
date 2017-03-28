@@ -23,6 +23,10 @@ class RectilinearGrid(StructuredGrid):
     def y_axis(self):
         return self._y_axis
 
+    def init_cell_locator(self, no_gap_along_axis=None):
+        if no_gap_along_axis is not None:
+            raise NotImplementedError()
+
     def calc_weights(self, x, y):
         col_indices, col_weights = self._x_axis.calc_weights(x)
 
