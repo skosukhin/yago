@@ -8,17 +8,12 @@ from cmd.common.arg_processors import ListParser, split_scalar_and_vector_vars
 from cmd.common.misc import create_dir_for_file
 from cmd.common.nc_utils import copy_nc_attributes, add_missing_dim_vars, \
     find_dim_indices, DimIterator, add_history, get_history
-from core.common import NORTH_POLE_TOLERANCE, gen_rot_matrices, \
-    apply_rot_matrices
+from core.common import POLE_TOLERANCE, gen_rot_matrices, apply_rot_matrices
 
 description = 'extends input fields specified on a rectilinear lat/lon grid ' \
               'by adding grid points that correspond to the North (South) ' \
               'Pole; values for the new grid points are calculated as mean ' \
-              'values along the highest (lowest) latitude of the fields; ' \
-              'u-components of new vector values are given in the direction ' \
-              'of the 90th meridian; v-components of new vector values are ' \
-              'given in the direction of the 180th (for the North Pole) or ' \
-              'the zero (for the South Pole) meridian'
+              'values along the highest (lowest) latitude of the fields'
 
 
 def setup_parser(parser):
@@ -88,7 +83,8 @@ def cmd(args):
     add_south_pole = (args.add == 'south' or args.add == 'both')
 
     lat_list = in_lat_var[:]
-    np_tol = lat_list.dtype.type(NORTH_POLE_TOLERANCE)
+    pole_tol = lat_list.dtype.type(POLE_TOLERANCE)
+    np_lat = lat_list.dtype.type(90)
 
     min_lat_idx, max_lat_idx = 0, -1
     lat_list_ascending = True
@@ -105,7 +101,7 @@ def cmd(args):
 
     append_row = prepend_row = False
     if add_north_pole:
-        if np.abs(lat_list[max_lat_idx] - 90.0) <= np_tol:
+        if np.abs(lat_list[max_lat_idx] - np_lat) <= pole_tol:
             raise Exception('Input grid already contains grid points for the '
                             'North Pole.')
         if lat_list_ascending:
@@ -113,10 +109,10 @@ def cmd(args):
         else:
             prepend_row = True
 
-        lat_list = _extend_axis(lat_list, 90.0, not lat_list_ascending)
+        lat_list = _extend_axis(lat_list, np_lat, not lat_list_ascending)
 
     if add_south_pole:
-        if np.abs(lat_list[min_lat_idx] + 90.0) <= np_tol:
+        if np.abs(lat_list[min_lat_idx] + np_lat) <= pole_tol:
             raise Exception('Input grid already contains grid points for the '
                             'South Pole.')
         if lat_list_ascending:
@@ -124,7 +120,7 @@ def cmd(args):
         else:
             append_row = True
 
-        lat_list = _extend_axis(lat_list, -90.0, lat_list_ascending)
+        lat_list = _extend_axis(lat_list, -np_lat, lat_list_ascending)
 
     create_dir_for_file(args.output_file)
     out_ds = Dataset(args.output_file, 'w')
@@ -207,7 +203,7 @@ def cmd(args):
 
     if len(vector_vars) > 0:
         print 'Processing vector fields:'
-        rot_matrices = gen_rot_matrices(lon_list)
+        to_zero, from_zero = gen_rot_matrices(lon_list, True)
 
     for var_name_pair in vector_vars:
         print var_name_pair
@@ -259,13 +255,13 @@ def cmd(args):
             if prepend_row:
                 out_u_field, out_v_field = \
                     _extend_vector_field(out_u_field, out_v_field,
-                                         rot_matrices,
+                                         to_zero, from_zero,
                                          True)
 
             if append_row:
                 out_u_field, out_v_field = \
                     _extend_vector_field(out_u_field, out_v_field,
-                                         rot_matrices,
+                                         to_zero, from_zero,
                                          False)
 
             if swap_axes:
@@ -306,28 +302,33 @@ def _extend_scalar_field(data, prepend):
         raise Exception()
 
 
-def _extend_vector_field(u_data, v_data, rot_matrices, prepend):
+def _extend_vector_field(u_data, v_data, to_zero_matrices, from_zero_matrices,
+                         prepend):
     dim_num = len(u_data.shape)
 
     if dim_num == 2:
+        row_idx = 0 if prepend else -1
+
+        rot_u, rot_v = apply_rot_matrices(u_data[row_idx], v_data[row_idx],
+                                          to_zero_matrices)
+        u_pole_value = u_data.dtype.type(np.ma.mean(rot_u))
+        v_pole_value = v_data.dtype.type(np.ma.mean(rot_v))
+        new_u, new_v = \
+            apply_rot_matrices(
+                np.ma.repeat(u_pole_value, u_data.shape[1]),
+                np.ma.repeat(v_pole_value, v_data.shape[1]),
+                from_zero_matrices)
+
         if prepend:
-            rot_u, rot_v = apply_rot_matrices(u_data[0], v_data[0],
-                                              rot_matrices)
-            u_pole_value = u_data.dtype.type(np.ma.mean(rot_u))
-            v_pole_value = v_data.dtype.type(np.ma.mean(rot_v))
             u_result = np.ma.append(
-                [np.ma.repeat(u_pole_value, u_data.shape[1])], u_data, axis=0)
+                [new_u], u_data, axis=0)
             v_result = np.ma.append(
-                [np.ma.repeat(v_pole_value, v_data.shape[1])], v_data, axis=0)
+                [new_v], v_data, axis=0)
         else:
-            rot_u, rot_v = apply_rot_matrices(u_data[-1], v_data[-1],
-                                              rot_matrices)
-            u_pole_value = u_data.dtype.type(np.ma.mean(rot_u))
-            v_pole_value = v_data.dtype.type(np.ma.mean(rot_v))
             u_result = np.ma.append(
-                u_data, [np.ma.repeat(u_pole_value, u_data.shape[1])], axis=0)
+                u_data, [new_u], axis=0)
             v_result = np.ma.append(
-                v_data, [np.ma.repeat(v_pole_value, v_data.shape[1])], axis=0)
+                v_data, [new_v], axis=0)
 
         return u_result, v_result
     else:

@@ -2,7 +2,7 @@ import numpy as np
 
 HALF_PI = np.pi / 2.0
 QUARTER_PI = np.pi / 4.0
-NORTH_POLE_TOLERANCE = 1e-5
+POLE_TOLERANCE = 1e-5
 
 
 def cos_sin_deg(angle_deg):
@@ -12,19 +12,27 @@ def cos_sin_deg(angle_deg):
     :return: Tuple of cosines and sinuses of the angles.
     """
     # We want float64 precision here.
+    angle_deg = np.asanyarray(angle_deg)
     angle_rad = np.empty(angle_deg.shape)
     np.radians(angle_deg, angle_rad)
     return np.cos(angle_rad), np.sin(angle_rad)
 
 
-def gen_rot_matrices(angle_degs):
+def gen_rot_matrices(angle_degs, gen_reverse=False):
     """
     Generates rotation matrices.
     :param angle_degs: Scalar or array of rotation angles (in degrees).
+    :param gen_reverse: Boolean flag that specifies whether an array of
+    matrices for backward rotation is return along with an array of matrices
+    for forward rotation.
     :return: Rotation matrices.
     """
     c_lons, s_lons = cos_sin_deg(angle_degs)
-    return np.asanyarray([[c_lons, -s_lons], [s_lons, c_lons]])
+    result = np.asanyarray([[c_lons, -s_lons], [s_lons, c_lons]])
+    if not gen_reverse:
+        return result
+    else:
+        return result, np.swapaxes(result, 0, 1)
 
 
 def apply_rot_matrices(uu, vv, rot_matrices):

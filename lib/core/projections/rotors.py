@@ -1,6 +1,6 @@
 import numpy as np
 
-from core.common import cos_sin_deg, NORTH_POLE_TOLERANCE
+from core.common import cos_sin_deg
 
 
 class Rotor(object):
@@ -143,8 +143,6 @@ class Rotor(object):
 
     @staticmethod
     def _rotate_points(rot_matrix, lats, lons):
-        np_tol = lats.dtype.type(NORTH_POLE_TOLERANCE)
-        lats, lons = Rotor._resolve_polar_points(lats, lons, np_tol)
         c_lats, s_lats = cos_sin_deg(lats)
         c_lons, s_lons = cos_sin_deg(lons)
         orig_normals = Rotor._build_normals(c_lats, s_lats, c_lons, s_lons)
@@ -152,12 +150,10 @@ class Rotor(object):
         rot_lats = np.degrees(np.arcsin(rot_normals[..., 2]))
         rot_lons = np.degrees(np.arctan2(rot_normals[..., 1],
                                          rot_normals[..., 0]))
-        return Rotor._resolve_polar_points(rot_lats, rot_lons, np_tol)
+        return rot_lats, rot_lons
 
     @staticmethod
     def _rotate_vectors(rot_matrix, uu, vv, lats, lons, return_point=False):
-        np_tol = lats.dtype.type(NORTH_POLE_TOLERANCE)
-        lats, lons = Rotor._resolve_polar_points(lats, lons, np_tol)
         c_lats, s_lats = cos_sin_deg(lats)
         c_lons, s_lons = cos_sin_deg(lons)
         easts = Rotor._build_easts(c_lons, s_lons)
@@ -203,19 +199,6 @@ class Rotor(object):
                          -s_lats * s_lons,
                          c_lats],
                         axis=-1)
-
-    @staticmethod
-    def _resolve_polar_points(lats, lons, eps):
-        t90 = lats.dtype.type(90)
-        mask = np.fabs(np.fabs(lats) - t90) <= eps
-        lons = np.where(mask,
-                        np.zeros(lons.shape, lons.dtype), lons)
-        lats = np.where(mask,
-                        np.ones(lats.shape, lats.dtype)
-                        * t90
-                        * np.sign(lats),
-                        lats)
-        return lats, lons
 
 
 class RotorX(Rotor):
