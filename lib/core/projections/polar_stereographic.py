@@ -69,11 +69,7 @@ class PolarStereographicProjection(Projection):
 
     def restore_vectors(self, uu, vv, xx, yy, return_points=False):
         lats, lons = self.restore_points(xx, yy)
-        c_lons, s_lons = cos_sin_deg(-lons)
-        rot_matrices = np.asanyarray([[c_lons, -s_lons], [s_lons, c_lons]])
-        rot_vecs = np.einsum('ij...,j...', rot_matrices, np.stack([uu, vv]))
-        rot_uu = rot_vecs[..., 0]
-        rot_vv = rot_vecs[..., 1]
+        rot_uu, rot_vv = rotate_vectors(uu, vv, -lons)
         if return_points:
             return rot_uu, rot_vv, lats, lons
         else:
