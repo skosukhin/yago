@@ -5,11 +5,10 @@ import numpy as np
 from netCDF4 import Dataset
 
 import cmd.common.name_constants as names
-from cmd.common.misc import create_dir_for_file
-from cmd.common.nc_utils import add_or_append_history, \
-    find_dim_indices, rename_dimensions, add_missing_dim_vars, DimIterator, \
-    reorder_axes
 from cmd.common.arg_processors import ListParser
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import find_dim_indices, rename_dimensions, add_missing_dim_vars, DimIterator, \
+    reorder_axes, add_history, get_history
 
 description = 'applies provided weights to perform interpolation'
 
@@ -103,9 +102,9 @@ def cmd(args):
             out_var[write_slc] = out_field
         _progress(write_op_count, write_op_count)
 
-    in_ds.close()
+    add_history(out_ds, get_history(in_ds))
 
-    add_or_append_history(out_ds)
+    in_ds.close()
     out_ds.close()
 
 
