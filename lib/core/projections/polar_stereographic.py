@@ -1,6 +1,6 @@
 import numpy as np
 
-from core.common import cos_sin_deg, HALF_PI, rotate_vectors
+from core.common import cos_sin_deg, HALF_PI, rotate_vectors_deg
 from core.projections.projection import Projection
 from core.projections.rotors import Rotor, RotorZ, RotorY
 
@@ -60,7 +60,7 @@ class PolarStereographicProjection(Projection):
         return lats, lons
 
     def convert_vectors(self, uu, vv, lats, lons, return_points=False):
-        rot_uu, rot_vv = rotate_vectors(uu, vv, lons)
+        rot_uu, rot_vv = rotate_vectors_deg(uu, vv, lons)
         if return_points:
             xx, yy = self.convert_points(lats, lons)
             return rot_uu, rot_vv, xx, yy
@@ -69,7 +69,7 @@ class PolarStereographicProjection(Projection):
 
     def restore_vectors(self, uu, vv, xx, yy, return_points=False):
         lats, lons = self.restore_points(xx, yy)
-        rot_uu, rot_vv = rotate_vectors(uu, vv, -lons)
+        rot_uu, rot_vv = rotate_vectors_deg(uu, vv, -lons)
         if return_points:
             return rot_uu, rot_vv, lats, lons
         else:

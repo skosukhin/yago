@@ -5,20 +5,20 @@ QUARTER_PI = np.pi / 4.0
 POLE_TOLERANCE = 1e-5
 
 
-def cos_sin_deg(angle_deg):
+def cos_sin_deg(angle_degs):
     """
     Calculates cosines and sinuses of angles.
-    :param angle_deg: Scalar or array of angles (in degrees).
+    :param angle_degs: Scalar or array of angles (in degrees).
     :return: Tuple of cosines and sinuses of the angles.
     """
     # We want float64 precision here.
-    angle_deg = np.asanyarray(angle_deg)
-    angle_rad = np.empty(angle_deg.shape)
-    np.radians(angle_deg, angle_rad)
-    return np.cos(angle_rad), np.sin(angle_rad)
+    angle_degs = np.asanyarray(angle_degs)
+    angle_rads = np.empty(angle_degs.shape)
+    np.radians(angle_degs, angle_rads)
+    return np.cos(angle_rads), np.sin(angle_rads)
 
 
-def gen_rot_matrices(angle_degs, gen_reverse=False):
+def gen_rot_matrices_deg(angle_degs, gen_reverse=False):
     """
     Generates rotation matrices.
     :param angle_degs: Scalar or array of rotation angles (in degrees).
@@ -27,8 +27,17 @@ def gen_rot_matrices(angle_degs, gen_reverse=False):
     for forward rotation.
     :return: Rotation matrices.
     """
-    c_lons, s_lons = cos_sin_deg(angle_degs)
-    result = np.asanyarray([[c_lons, -s_lons], [s_lons, c_lons]])
+    cosines, sines = cos_sin_deg(angle_degs)
+    return gen_rot_matrices_sincos(sines, cosines, gen_reverse)
+
+
+def gen_rot_matrices_rad(angle_rad, gen_reverse=False):
+    return gen_rot_matrices_sincos(np.sin(angle_rad), np.cos(angle_rad),
+                                   gen_reverse)
+
+
+def gen_rot_matrices_sincos(sines, cosines, gen_reverse=False):
+    result = np.asanyarray([[cosines, -sines], [sines, cosines]])
     if not gen_reverse:
         return result
     else:
@@ -50,12 +59,12 @@ def apply_rot_matrices(uu, vv, rot_matrices):
     return rot_uu, rot_vv
 
 
-def rotate_vectors(uu, vv, angles):
+def rotate_vectors_deg(uu, vv, angle_degs):
     """
     Rotates 2D vectors by given angles.
     :param uu: Scalar or array of the first vectors' components.
     :param vv: Scalar or array of the second vectors' components.
-    :param angles: Scalar or array of rotation angles (in degrees).
+    :param angle_degs: Scalar or array of rotation angles (in degrees).
     :return: Tuple of scalars or arrays of components of the rotated vectors.
     """
-    return apply_rot_matrices(uu, vv, gen_rot_matrices(angles))
+    return apply_rot_matrices(uu, vv, gen_rot_matrices_deg(angle_degs))

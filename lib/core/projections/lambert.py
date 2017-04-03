@@ -1,6 +1,6 @@
 import numpy as np
 
-from core.common import QUARTER_PI, rotate_vectors
+from core.common import QUARTER_PI, rotate_vectors_deg
 from core.projections.projection import Projection
 from core.projections.rotors import Rotor, RotorZ, RotorY
 
@@ -83,7 +83,7 @@ class LambertConformalProjection(Projection):
         return self._restore_from_unitless(xx_unitless, yy_unitless)
 
     def convert_vectors(self, uu, vv, lats, lons, return_points=False):
-        rot_uu, rot_vv = rotate_vectors(uu, vv, lons * self.n)
+        rot_uu, rot_vv = rotate_vectors_deg(uu, vv, lons * self.n)
         if return_points:
             xx, yy = self.convert_points(lats, lons)
             return rot_uu, rot_vv, xx, yy
@@ -92,7 +92,7 @@ class LambertConformalProjection(Projection):
 
     def restore_vectors(self, uu, vv, xx, yy, return_points=False):
         lats, lons = self.restore_points(xx, yy)
-        rot_uu, rot_vv = rotate_vectors(uu, vv, -lons * self.n)
+        rot_uu, rot_vv = rotate_vectors_deg(uu, vv, -lons * self.n)
         if return_points:
             return rot_uu, rot_vv, lats, lons
         else:

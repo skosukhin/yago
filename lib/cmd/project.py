@@ -1,5 +1,4 @@
 import sys
-from itertools import izip
 
 import numpy as np
 from netCDF4 import Dataset
@@ -122,6 +121,8 @@ def cmd(args):
         out_var = out_ds.createVariable(var_name,
                                         in_var.dtype,
                                         dimensions=in_var.dimensions)
+
+        copy_nc_attributes(in_var, out_var)
 
         iter_mask = np.ones((len(in_var.shape, )), dtype=bool)
         iter_mask[-MAX_COPY_DIM_COUNT:] = False

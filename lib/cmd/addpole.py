@@ -8,7 +8,7 @@ from cmd.common.arg_processors import ListParser, split_scalar_and_vector_vars
 from cmd.common.misc import create_dir_for_file
 from cmd.common.nc_utils import copy_nc_attributes, add_missing_dim_vars, \
     find_dim_indices, DimIterator, add_history, get_history
-from core.common import POLE_TOLERANCE, gen_rot_matrices, apply_rot_matrices
+from core.common import POLE_TOLERANCE, gen_rot_matrices_deg, apply_rot_matrices
 
 description = 'extends input fields specified on a rectilinear lat/lon grid ' \
               'by adding grid points that correspond to the North (South) ' \
@@ -203,7 +203,7 @@ def cmd(args):
 
     if len(vector_vars) > 0:
         print 'Processing vector fields:'
-        to_zero, from_zero = gen_rot_matrices(lon_list, True)
+        to_zero, from_zero = gen_rot_matrices_deg(lon_list, True)
 
     for var_name_pair in vector_vars:
         print var_name_pair
