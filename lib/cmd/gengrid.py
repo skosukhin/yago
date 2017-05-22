@@ -64,7 +64,7 @@ def setup_parser(parser):
                                 type=np.float64, required=True)
     mandatory_args.add_argument('--x-start',
                                 help='x-coordinate (in meters) of the first '
-                                     'grid point',
+                                     'grid point (before false easting)',
                                 type=np.float64, required=True)
     mandatory_args.add_argument('--x-count',
                                 help='number of grid points along x-axis',
@@ -75,7 +75,7 @@ def setup_parser(parser):
                                 type=parse_pos_float, required=True)
     mandatory_args.add_argument('--y-start',
                                 help='y-coordinate (in meters) of the first '
-                                     'grid point',
+                                     'grid point (before false northing)',
                                 type=np.float64, required=True)
     mandatory_args.add_argument('--y-count',
                                 help='number of grid points along y-axis',
@@ -247,7 +247,7 @@ class NetCDFSerializer(OutputSerializer):
         proj_var.rot_angles_deg = self.rot_angles_deg
         proj_var.short_name = self.proj_short_name
         proj_var.false_easting = self.x_offset
-        proj_var.false_northing = self.x_offset
+        proj_var.false_northing = self.y_offset
 
         lats_var = ds.createVariable(names.DIMVAR_LAT, self.lats.dtype,
                                      dimensions=(
