@@ -60,6 +60,7 @@ class SinusoidalProjection(Projection):
         return xx, yy
 
     def restore_points(self, xx, yy):
+        xx, yy = np.asanyarray(xx), np.asanyarray(yy)
         lats_rad = yy / self.earth_radius
         lons = np.degrees(xx / (self.earth_radius * np.cos(lats_rad)))
         return np.degrees(lats_rad), lons

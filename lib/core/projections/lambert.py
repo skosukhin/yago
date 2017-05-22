@@ -78,6 +78,7 @@ class LambertConformalProjection(Projection):
         return xx_unitless * self.earth_radius, yy_unitless * self.earth_radius
 
     def restore_points(self, xx, yy):
+        xx, yy = np.asanyarray(xx), np.asanyarray(yy)
         xx_unitless = xx / self.earth_radius
         yy_unitless = yy / self.earth_radius
         return self._restore_from_unitless(xx_unitless, yy_unitless)

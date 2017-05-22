@@ -54,6 +54,7 @@ class PolarStereographicProjection(Projection):
         return xx, yy
 
     def restore_points(self, xx, yy):
+        xx, yy = np.asanyarray(xx), np.asanyarray(yy)
         rr = np.sqrt(xx * xx + yy * yy) / self.earth_radius
         lats = np.degrees(HALF_PI - 2.0 * np.arctan(rr / self.z))
         lons = np.degrees(np.arctan2(xx, -yy))

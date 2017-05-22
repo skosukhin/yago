@@ -54,6 +54,7 @@ class MercatorProjection(Projection):
         return xx, yy
 
     def restore_points(self, xx, yy):
+        xx, yy = np.asanyarray(xx), np.asanyarray(yy)
         lons = np.degrees(xx / (self.earth_radius * self.k))
         lats = np.degrees(2.0 * np.arctan(
             np.exp(yy / (self.earth_radius * self.k))) - HALF_PI)
