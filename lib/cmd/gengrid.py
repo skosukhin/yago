@@ -64,7 +64,7 @@ def setup_parser(parser):
                                 type=np.float64, required=True)
     mandatory_args.add_argument('--x-start',
                                 help='x-coordinate (in meters) of the first '
-                                     'grid point (before false easting)',
+                                     'grid point (after false easting)',
                                 type=np.float64, required=True)
     mandatory_args.add_argument('--x-count',
                                 help='number of grid points along x-axis',
@@ -75,7 +75,7 @@ def setup_parser(parser):
                                 type=parse_pos_float, required=True)
     mandatory_args.add_argument('--y-start',
                                 help='y-coordinate (in meters) of the first '
-                                     'grid point (before false northing)',
+                                     'grid point (after false northing)',
                                 type=np.float64, required=True)
     mandatory_args.add_argument('--y-count',
                                 help='number of grid points along y-axis',
@@ -106,11 +106,11 @@ def setup_parser(parser):
                         help='optional angle of rotation for grid adjustment '
                              '(default: %(default)s)',
                         type=np.float64, default=np.float64(0.0))
-    parser.add_argument('--x-offset',
+    parser.add_argument('--easting',
                         help='value added to all x-coordinates '
                              '(false easting)',
                         type=np.float64, default=np.float64(0))
-    parser.add_argument('--y-offset',
+    parser.add_argument('--northing',
                         help='value added to all y-coordinates '
                              '(false northing)',
                         type=np.float64, default=np.float64(0))
@@ -154,8 +154,8 @@ def cmd(args):
     serializer.proj_short_name = converter.projection.short_name
     serializer.lats = lats
     serializer.lons = lons
-    serializer.x_offset = args.x_offset
-    serializer.y_offset = args.y_offset
+    serializer.easting = converter.translator.easting
+    serializer.northing = converter.translator.northing
 
     serializer.save()
 
@@ -186,10 +186,10 @@ class OutputSerializer(object):
     title = None
     xx = None
     x_step = None
-    x_offset = None
+    easting = None
     yy = None
     y_step = None
-    y_offset = None
+    northing = None
     proj_description = None
     mapping_name = None
     earth_radius = None
@@ -224,7 +224,7 @@ class NetCDFSerializer(OutputSerializer):
         x_var.axis = 'X'
         x_var.units = 'm'
         x_var.step = self.x_step
-        x_var[:] = self.xx[0] + self.x_offset
+        x_var[:] = self.xx[0]
 
         ds.createDimension(names.DIMVAR_Y, len(self.yy))
         y_var = ds.createVariable(names.DIMVAR_Y, self.yy.dtype,
@@ -234,7 +234,7 @@ class NetCDFSerializer(OutputSerializer):
         y_var.axis = 'Y'
         y_var.units = 'm'
         y_var.step = self.y_step
-        y_var[:] = self.yy[:, 1] + self.y_offset
+        y_var[:] = self.yy[:, 1]
 
         proj_var = ds.createVariable(names.VAR_PROJECTION, 'c')
         proj_var.description = self.proj_description
@@ -246,8 +246,8 @@ class NetCDFSerializer(OutputSerializer):
         proj_var.rot_axes = self.rot_axes_ids
         proj_var.rot_angles_deg = self.rot_angles_deg
         proj_var.short_name = self.proj_short_name
-        proj_var.false_easting = self.x_offset
-        proj_var.false_northing = self.y_offset
+        proj_var.false_easting = self.easting
+        proj_var.false_northing = self.northing
 
         lats_var = ds.createVariable(names.DIMVAR_LAT, self.lats.dtype,
                                      dimensions=(
@@ -313,21 +313,21 @@ class TextSerializer(OutputSerializer):
                 'Grid size: %ix%i' % (len(self.xx), len(self.xx[0]))))
 
             f.writelines(TextSerializer._comment(
-                'X offset: %s' % TextSerializer._float_to_string(
-                    self.x_offset)))
+                'False easting: %s' % TextSerializer._float_to_string(
+                    self.easting)))
             f.writelines(TextSerializer._comment(
-                'Y offset: %s' % TextSerializer._float_to_string(
-                    self.y_offset)))
+                'False northing: %s' % TextSerializer._float_to_string(
+                    self.northing)))
 
             f.writelines(TextSerializer._comment(
                 'X coordinates of projection (step %s m)' %
                 TextSerializer._float_to_string(self.x_step)))
-            TextSerializer._write_matrix(self.xx + self.x_offset, f)
+            TextSerializer._write_matrix(self.xx, f)
 
             f.writelines(TextSerializer._comment(
                 'Y coordinates of projection (step %s m)' %
                 TextSerializer._float_to_string(self.x_step)))
-            TextSerializer._write_matrix(self.yy + self.y_offset, f)
+            TextSerializer._write_matrix(self.yy, f)
 
             f.writelines(TextSerializer._comment(
                 'Latitude coordinates (degrees north)' % self.x_step))

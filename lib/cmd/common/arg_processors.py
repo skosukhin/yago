@@ -4,6 +4,7 @@ import numpy as np
 
 from core.projections import projections
 from core.projections.converter import Converter
+from core.projections.translator import Translator
 
 
 class ListParser(object):
@@ -84,8 +85,9 @@ def init_converter_from_args(args):
     proj_cls = projections[args.proj_name]
     p = proj_cls.unified_init(args.earth_radius, args.true_scale_lats)
     r = proj_cls.build_rotor(args.orig_lat, args.orig_lon, args.adjust_angle)
+    t = Translator(args.easting, args.northing)
 
-    return Converter(r, p)
+    return Converter(r, p, t)
 
 
 def split_scalar_and_vector_vars(var_names):

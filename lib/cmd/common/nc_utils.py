@@ -13,6 +13,8 @@ from core.projections.converter import Converter
 from core.projections.rotors import Rotor, RotorX, RotorY, RotorZ
 
 # Maximum number of dimensions to copy during one read/write operation
+from core.projections.translator import Translator
+
 MAX_COPY_DIM_COUNT = 2
 
 
@@ -171,7 +173,9 @@ def init_converter_from_proj_var(proj_var):
     p = projections[proj_var.short_name].unified_init(proj_var.earth_radius,
                                                       standard_parallel_list)
 
-    return Converter(r, p)
+    t = Translator(proj_var.false_easting, proj_var.false_northing)
+
+    return Converter(r, p, t)
 
 
 def find_dim_indices(names_to_find, dimensions):
