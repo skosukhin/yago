@@ -181,7 +181,8 @@ def cmd(args):
                                                         in_dim_var.dtype,
                                                         dimensions=(dim_name,))
                     copy_nc_attributes(in_dim_var, out_dim_var)
-                    out_dim_var[:] = in_dim_var[dim_request]
+                    if dim_request is not None:
+                        out_dim_var[:] = in_dim_var[dim_request]
 
             var_request.append(dim_request)
 
@@ -213,6 +214,9 @@ def _process_slice_request(dim_name, request_dict, default_request):
 
 def _process_exclude_request(dim_name, request_dict, dim_size,
                              current_request):
+    if current_request is None:
+        return None
+
     if request_dict is None or dim_name not in request_dict:
         return current_request
 
@@ -240,6 +244,9 @@ def _process_exclude_request(dim_name, request_dict, dim_size,
 
     result = [idx for idx in index_list if idx not in exclude_indices]
 
+    if len(result) == 0:
+        return None
+
     if len(result) == len(index_list):
         return current_request
 
@@ -248,6 +255,9 @@ def _process_exclude_request(dim_name, request_dict, dim_size,
 
 def _process_min_max_request(dim_name, min_dict, max_dict, dim_var,
                              current_request):
+    if current_request is None:
+        return None
+
     min_val = None
     if min_dict is not None and dim_name in min_dict:
         min_val = min_dict[dim_name]
@@ -293,6 +303,9 @@ def _process_min_max_request(dim_name, min_dict, max_dict, dim_var,
     else:
         result = [dim_idx for list_idx, dim_idx in enumerate(index_list) if
                   max_val >= var_list[list_idx] >= min_val]
+
+    if len(result) == 0:
+        return None
 
     if len(result) == len(index_list):
         return current_request
