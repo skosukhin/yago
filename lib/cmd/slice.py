@@ -33,104 +33,121 @@ def setup_parser(parser):
                                 type=string_list_parser,
                                 action=AddToSetAction,
                                 required=True)
+    operation_args = parser.add_argument_group('operations')
     string_slice_parser = PairParser(None, parse_slice)
-    parser.add_argument('--slice',
-                        help='\'%s\'-separated pair of strings where the '
-                             'first string is a name of a netcdf dimension '
-                             'and the second one is a python style slicing '
-                             'string that will be applied to select a subset '
-                             'of values along the dimension (e.g. if '
-                             'dimension\'s name is \'lat\' and all but last '
-                             'values along this dimension are required than '
-                             'the value of this argument should be '
-                             '\'lat::-1\'); this argument can be specified '
-                             'multiple times to slice multiple dimensions'
-                             % string_slice_parser.separator,
-                        type=string_slice_parser,
-                        action=AddToDictAction,
-                        dest='slice_dict')
+    operation_args.add_argument('--slice',
+                                help='\'%s\'-separated pair of strings where '
+                                     'the first string is a name of a netcdf '
+                                     'dimension and the second one is a '
+                                     'python style slicing string that will '
+                                     'be applied to select a subset of values '
+                                     'along the dimension (e.g. if '
+                                     'dimension\'s name is \'lat\' and all '
+                                     'but last values along this dimension '
+                                     'are required than the value of this '
+                                     'argument should be \'lat::-1\'); this '
+                                     'argument can be specified multiple '
+                                     'times to slice multiple dimensions'
+                                     % string_slice_parser.separator,
+                                type=string_slice_parser,
+                                action=AddToDictAction,
+                                dest='slice_dict')
     int_list_parser = ListParser(np.intp, ',')
     string_int_list_parser = PairParser(None, int_list_parser)
-    parser.add_argument('--exclude-indices',
-                        help='\'%s\'-separated pair of strings where the '
-                             'first string is a name of a netcdf dimension '
-                             'and the second one is a \'%s\'-separated list '
-                             'of indices (starting from 0) that will NOT be '
-                             'saved to the output file; this argument can be '
-                             'specified multiple times to exclude indices '
-                             'from multiple dimensions'
-                             % (string_int_list_parser.separator,
-                                int_list_parser.separator),
-                        type=string_int_list_parser,
-                        action=AddToDictAction,
-                        dest='exclude_dict')
+    operation_args.add_argument('--exclude-indices',
+                                help='\'%s\'-separated pair of strings where '
+                                     'the first string is a name of a netcdf '
+                                     'dimension and the second one is a '
+                                     '\'%s\'-separated list of indices '
+                                     '(starting from 0) that will NOT be '
+                                     'saved to the output file; this argument '
+                                     'can be specified multiple times to '
+                                     'exclude indices from multiple dimensions'
+                                     % (string_int_list_parser.separator,
+                                        int_list_parser.separator),
+                                type=string_int_list_parser,
+                                action=AddToDictAction,
+                                dest='exclude_dict')
     string_int_parser = PairParser(None, np.int64)
-    parser.add_argument('--min-val',
-                        help='\'%s\'-separated pair of a string and a value, '
-                             'where the string is a common name for a netcdf '
-                             'dimension and a 1D netcdf variable specified '
-                             'along this dimension, and the value is the '
-                             'minimum threshold for the variable\'s values '
-                             'that will be saved to the output (indices that '
-                             'correspond to the values that are less than the '
-                             'threshold will be excluded from the dimension); '
-                             'this argument can be specified multiple times '
-                             'to exclude indices from multiple dimensions'
-                             % string_int_parser.separator,
-                        type=string_int_parser,
-                        action=AddToDictAction,
-                        dest='min_dict')
-    parser.add_argument('--max-val',
-                        help='\'%s\'-separated pair of a string and a value, '
-                             'where the string is a common name for a netcdf '
-                             'dimension and a 1D netcdf variable specified '
-                             'along this dimension, and the value is the '
-                             'maximum threshold for the variable\'s values '
-                             'that will be saved to the output (indices that '
-                             'correspond to the values that are greater than '
-                             'the threshold will be excluded from the '
-                             'dimension); this argument can be specified '
-                             'multiple times to exclude indices from multiple '
-                             'dimensions'
-                             % string_int_parser.separator,
-                        type=string_int_parser,
-                        action=AddToDictAction,
-                        dest='max_dict')
+    operation_args.add_argument('--min-val',
+                                help='\'%s\'-separated pair of a string and a '
+                                     'value, where the string is a common '
+                                     'name for a netcdf dimension and a 1D '
+                                     'netcdf variable specified along this '
+                                     'dimension, and the value is the minimum '
+                                     'threshold for the variable\'s values '
+                                     'that will be saved to the output '
+                                     '(indices that correspond to the values '
+                                     'that are less than the threshold will '
+                                     'be excluded from the dimension); this '
+                                     'argument can be specified multiple '
+                                     'times to exclude indices from multiple '
+                                     'dimensions'
+                                     % string_int_parser.separator,
+                                type=string_int_parser,
+                                action=AddToDictAction,
+                                dest='min_dict')
+    operation_args.add_argument('--max-val',
+                                help='\'%s\'-separated pair of a string and a '
+                                     'value, where the string is a common '
+                                     'name for a netcdf dimension and a 1D '
+                                     'netcdf variable specified along this '
+                                     'dimension, and the value is the maximum '
+                                     'threshold for the variable\'s values '
+                                     'that will be saved to the output '
+                                     '(indices that correspond to the values '
+                                     'that are greater than the threshold '
+                                     'will be excluded from the dimension); '
+                                     'this argument can be specified multiple '
+                                     'times to exclude indices from multiple '
+                                     'dimensions'
+                                     % string_int_parser.separator,
+                                type=string_int_parser,
+                                action=AddToDictAction,
+                                dest='max_dict')
     time_parser = DateTimeParser()
     help_substring = time_parser.fmt.replace('%', '%%')
     string_time_parser = PairParser(None, time_parser)
-    parser.add_argument('--min-time',
-                        help='\'%s\'-separated pair of a string and a '
-                             'timestamp in the format \'%s\', where the '
-                             'string is a common name for a netcdf dimension '
-                             'and a 1D netcdf variable specified along this '
-                             'dimension, and the timestamp is the minimum '
-                             'threshold for the variable\'s values that will '
-                             'be saved to the output (indices that correspond '
-                             'to the values that are less than the '
-                             'threshold will be excluded from the dimension); '
-                             'this argument can be specified multiple times '
-                             'to exclude indices from multiple dimensions'
-                             % (string_time_parser.separator, help_substring),
-                        type=string_time_parser,
-                        action=AddToDictAction,
-                        dest='min_dict')
-    parser.add_argument('--max-time',
-                        help='\'%s\'-separated pair of a string and a '
-                             'timestamp in the format \'%s\', where the '
-                             'string is a common name for a netcdf dimension '
-                             'and a 1D netcdf variable specified along this '
-                             'dimension, and the timestamp is the maximum '
-                             'threshold for the variable\'s values that will '
-                             'be saved to the output (indices that correspond '
-                             'to the values that are greater than the '
-                             'threshold will be excluded from the dimension); '
-                             'this argument can be specified multiple times '
-                             'to exclude indices from multiple dimensions'
-                             % (string_time_parser.separator, help_substring),
-                        type=string_time_parser,
-                        action=AddToDictAction,
-                        dest='max_dict')
+    operation_args.add_argument('--min-time',
+                                help='\'%s\'-separated pair of a string and a '
+                                     'timestamp in the format \'%s\', where '
+                                     'the string is a common name for a '
+                                     'netcdf dimension and a 1D netcdf '
+                                     'variable specified along this '
+                                     'dimension, and the timestamp is the '
+                                     'minimum threshold for the variable\'s '
+                                     'values that will be saved to the output '
+                                     '(indices that correspond to the values '
+                                     'that are less than the threshold will '
+                                     'be excluded from the dimension); this '
+                                     'argument can be specified multiple '
+                                     'times to exclude indices from multiple '
+                                     'dimensions'
+                                     % (string_time_parser.separator,
+                                        help_substring),
+                                type=string_time_parser,
+                                action=AddToDictAction,
+                                dest='min_dict')
+    operation_args.add_argument('--max-time',
+                                help='\'%s\'-separated pair of a string and a '
+                                     'timestamp in the format \'%s\', where '
+                                     'the string is a common name for a '
+                                     'netcdf dimension and a 1D netcdf '
+                                     'variable specified along this '
+                                     'dimension, and the timestamp is the '
+                                     'maximum threshold for the variable\'s '
+                                     'values that will be saved to the output '
+                                     '(indices that correspond to the values '
+                                     'that are greater than the threshold '
+                                     'will be excluded from the dimension); '
+                                     'this argument can be specified multiple '
+                                     'times to exclude indices from multiple '
+                                     'dimensions'
+                                     % (string_time_parser.separator,
+                                        help_substring),
+                                type=string_time_parser,
+                                action=AddToDictAction,
+                                dest='max_dict')
 
 
 def cmd(args):
@@ -325,8 +342,8 @@ class AddToDictAction(argparse.Action):
             setattr(namespace, self.dest, d)
         key = values[0]
         if key in d:
-            raise Exception('Only one operation of the same type per variable '
-                            'is allowed.')
+            parser.error('Only one operation of the same type per variable is '
+                         'allowed.')
         d[key] = values[1]
 
 
