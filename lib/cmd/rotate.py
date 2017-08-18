@@ -43,7 +43,7 @@ def setup_parser(parser):
 
     parser.add_argument('--angle-file',
                         help='name of netcdf file that contains angles of '
-                             'rotation; if the parameter is not specified than'
+                             'rotation; if the parameter is not specified then'
                              ' the angles are expected in the input file')
     parser.add_argument('--dim-names',
                         help='\'%s\'-separated list of names of netcdf '
@@ -51,7 +51,7 @@ def setup_parser(parser):
                              'fields that need to be rotated; the dimensions '
                              'must define the same shape as the angle '
                              'variable has; if the parameter is not specified '
-                             'than the names of dimensions of the angle '
+                             'then the names of dimensions of the angle '
                              'variable are used to identify the rotated '
                              'subfields'
                              % string_list_parser.separator,
