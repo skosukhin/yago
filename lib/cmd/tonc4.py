@@ -31,7 +31,8 @@ def setup_parser(parser):
                                   help='sets compression level '
                                        '(default: \'%(default)s\')',
                                   default=4,
-                                  choices=range(1, 10))
+                                  type=np.intp,
+                                  choices=np.arange(1, 10, dtype=np.intp))
     compression_args.add_argument('--no-shuffle',
                                   help='disables shuffle filter',
                                   action='store_false',
