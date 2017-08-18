@@ -112,9 +112,9 @@ class DimIterator(object):
                     break
 
 
-def copy_nc_attributes(src_var, dst_var):
-    for attr_name in src_var.ncattrs():
-        dst_var.setncattr(attr_name, src_var.getncattr(attr_name))
+def copy_nc_attributes(src, dst):
+    for attr_name in src.ncattrs():
+        dst.setncattr(attr_name, src.getncattr(attr_name))
 
 
 def create_nc_var_like_other(out_ds, other_var, **overrides):

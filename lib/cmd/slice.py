@@ -1,16 +1,16 @@
 import argparse
-from itertools import izip
 from datetime import datetime
+from itertools import izip
 
 import numpy as np
 from netCDF4 import Dataset
 
-from cmd.common.misc import create_dir_for_file
-from cmd.common.nc_utils import copy_nc_attributes, MAX_COPY_DIM_COUNT, \
-    DimIterator, add_history, get_history, get_time_converter, \
-    create_nc_var_like_other
 from cmd.common.arg_processors import ListParser, PairParser, parse_slice, \
     DateTimeParser
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import MAX_COPY_DIM_COUNT, \
+    DimIterator, add_history, get_history, get_time_converter, \
+    create_nc_var_like_other
 
 description = 'slices fields'
 
