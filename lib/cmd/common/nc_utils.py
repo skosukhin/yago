@@ -117,6 +117,23 @@ def copy_nc_attributes(src_var, dst_var):
         dst_var.setncattr(attr_name, src_var.getncattr(attr_name))
 
 
+def create_nc_var_like_other(out_ds, other_var, **overrides):
+    kwargs = {'dimensions': other_var.dimensions}
+
+    other_filters = other_var.filters()
+
+    if other_filters is not None:
+        kwargs.update(other_filters)
+
+    kwargs.update(overrides)
+
+    result = out_ds.createVariable(other_var.name, other_var.dtype, **kwargs)
+
+    copy_nc_attributes(other_var, result)
+
+    return result
+
+
 def get_time_converter(time_var):
     try:
         time_var.units

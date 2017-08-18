@@ -7,7 +7,8 @@ from netCDF4 import Dataset
 
 from cmd.common.misc import create_dir_for_file
 from cmd.common.nc_utils import copy_nc_attributes, MAX_COPY_DIM_COUNT, \
-    DimIterator, add_history, get_history, get_time_converter
+    DimIterator, add_history, get_history, get_time_converter, \
+    create_nc_var_like_other
 from cmd.common.arg_processors import ListParser, PairParser, parse_slice, \
     DateTimeParser
 
@@ -177,19 +178,13 @@ def cmd(args):
                                                                dim.size))
 
                 if in_dim_var is not None:
-                    out_dim_var = out_ds.createVariable(dim_name,
-                                                        in_dim_var.dtype,
-                                                        dimensions=(dim_name,))
-                    copy_nc_attributes(in_dim_var, out_dim_var)
+                    out_dim_var = create_nc_var_like_other(out_ds, in_dim_var)
                     if dim_request is not None:
                         out_dim_var[:] = in_dim_var[dim_request]
 
             var_request.append(dim_request)
 
-        out_var = out_ds.createVariable(var_name,
-                                        in_var.dtype,
-                                        dimensions=in_var.dimensions)
-        copy_nc_attributes(in_var, out_var)
+        out_var = create_nc_var_like_other(out_ds, in_var)
 
         iter_mask = np.ones((len(in_var.shape, )), dtype=bool)
         iter_mask[-MAX_COPY_DIM_COUNT:] = False
