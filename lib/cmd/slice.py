@@ -1,6 +1,7 @@
 import argparse
 from datetime import datetime
 from itertools import izip
+from collections import OrderedDict
 
 import numpy as np
 from netCDF4 import Dataset
@@ -351,7 +352,7 @@ class AddToSetAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         s = getattr(namespace, self.dest)
         if s is None:
-            s = set(values)
-        else:
-            s = s.union(values)
-        setattr(namespace, self.dest, s)
+            s = OrderedDict()
+            setattr(namespace, self.dest, s)
+        for v in values:
+            s[v] = True
