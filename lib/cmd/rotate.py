@@ -7,9 +7,11 @@ from cmd.common.arg_processors import ListParser, split_scalar_and_vector_vars
 from cmd.common.misc import create_dir_for_file
 from cmd.common.nc_utils import add_history, get_history, find_dim_indices, \
     MAX_COPY_DIM_COUNT, DimIterator, add_missing_dim_vars, copy_nc_attributes
-from core.common import gen_rot_matrices_rad, apply_rot_matrices
+from core.common import gen_rot_matrices_rad, apply_rot_matrices, \
+    gen_rot_matrices_deg
 
-description = 'rotates vector fields by specified angle'
+description = 'rotates vector fields by specified angle (counter-clockwise ' \
+              'in right-handed system)'
 
 
 def setup_parser(parser):
@@ -38,8 +40,11 @@ def setup_parser(parser):
                                 required=True)
     mandatory_args.add_argument('--angle-name',
                                 help='name of netcdf variable that contains '
-                                     'angles of rotation (in radians)',
+                                     'angles of rotation',
                                 required=True)
+    mandatory_args.add_argument('--angle-units',
+                                help='units of the angles of rotation',
+                                choices=['rad', 'deg'],)
 
     parser.add_argument('--angle-file',
                         help='name of netcdf file that contains angles of '
@@ -95,7 +100,9 @@ def cmd(args):
                                 'dimension \'%s\' of the angle file.'
                                 % (dim_name, angle_var.dimensions[dim_idx]))
 
-    rot_matrices = gen_rot_matrices_rad(angle_var[:])
+    rot_matrices = gen_rot_matrices_rad(angle_var[:]) \
+        if args.angle_units == 'rad' \
+        else gen_rot_matrices_deg(angle_var[:])
     angle_ds.close()
 
     create_dir_for_file(args.output_file)
