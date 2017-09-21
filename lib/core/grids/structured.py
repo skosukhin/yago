@@ -27,6 +27,10 @@ class StructuredGrid(Grid):
     def shape(self):
         return self._data.shape[:-1]
 
+    @property
+    def dtype(self):
+        return self._data.dtype
+
     def __getitem__(self, item):
         return self._data[item]
 

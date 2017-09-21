@@ -6,12 +6,12 @@ from core.grids.structured import StructuredGrid
 
 
 class RectilinearGrid(StructuredGrid):
-    def __init__(self, x, y):
+    def __init__(self, x, y, copy_values=True):
         if len(x.shape) != 1 or len(y.shape) != 1:
             raise Exception('Rectilinear grid requires 1D axis arrays.')
 
-        self._x_axis = build_axis(x)
-        self._y_axis = build_axis(y)
+        self._x_axis = build_axis(x, copy_values)
+        self._y_axis = build_axis(y, copy_values)
         xx, yy = np.meshgrid(self._x_axis, self._y_axis)
         super(RectilinearGrid, self).__init__(xx, yy)
 

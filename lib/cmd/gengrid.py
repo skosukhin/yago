@@ -33,13 +33,15 @@ gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0
 import re
 
 import numpy as np
+from netCDF4 import Dataset
 
 import cmd.common.name_constants as names
-from cmd.common.misc import create_dir_for_file
-from cmd.common.nc_utils import set_generic_lat_attributes, \
-    set_generic_lon_attributes, add_or_append_history
 from cmd.common.arg_processors import ListParser, parse_pos_intp, \
     parse_pos_float, init_converter_from_args
+from cmd.common.misc import create_dir_for_file
+from cmd.common.nc_utils import add_or_append_history
+from core.grids.axes import RegularAxis
+from core.grids.rectilinear import RectilinearGrid
 from core.projections import projections
 
 description = 'generates a regular grid in Cartesian coordinates on a ' \
@@ -114,27 +116,44 @@ def setup_parser(parser):
                         help='value added to all y-coordinates '
                              '(false northing)',
                         type=np.float64, default=np.float64(0))
-    parser.add_argument('--output-format',
-                        help='output file format (default: %(default)s)',
-                        choices=['txt', 'nc'], default='txt')
 
 
 def cmd(args):
     converter = init_converter_from_args(args)
-    xx, yy = _generate_cartesian_grid(args.x_start, args.x_count, args.x_step,
-                                      args.y_start, args.y_count, args.y_step)
 
-    lats, lons = converter.restore_points(xx, yy)
+    grid = RectilinearGrid(
+        RegularAxis(args.x_start, args.x_count, args.x_step),
+        RegularAxis(args.y_start, args.y_count, args.y_step),
+        False)
 
-    serializer = get_serializer_from_args(args)
-    serializer.title = 'Geographic coordinates of points of a regular grid ' \
-                       'defined in Cartesian coordinates on a ' + \
-                       converter.projection.long_name + ' projection plane.'
-    serializer.xx = xx
-    serializer.x_step = args.x_step
-    serializer.yy = yy
-    serializer.y_step = args.y_step
-    serializer.proj_description = \
+    create_dir_for_file(args.output_file)
+    grid_ds = Dataset(args.output_file, mode='w', format='NETCDF4')
+    grid_ds.title = 'Geographic coordinates of points of a regular grid ' \
+                    'defined in Cartesian coordinates on a ' + \
+                    converter.projection.long_name + ' projection plane.'
+
+    grid_ds.createDimension(names.DIMVAR_X, args.x_count)
+    x_var = grid_ds.createVariable(names.DIMVAR_X, grid.dtype,
+                                   dimensions=(names.DIMVAR_X,))
+    x_var.long_name = 'x coordinate of projection'
+    x_var.standard_name = 'projection_x_coordinate'
+    x_var.axis = 'X'
+    x_var.units = 'm'
+    x_var.step = args.x_step
+    x_var[:] = grid.x_axis
+
+    grid_ds.createDimension(names.DIMVAR_Y, args.y_count)
+    y_var = grid_ds.createVariable(names.DIMVAR_Y, grid.dtype,
+                                   dimensions=(names.DIMVAR_Y,))
+    y_var.long_name = 'y coordinate of projection'
+    y_var.standard_name = 'projection_y_coordinate'
+    y_var.axis = 'Y'
+    y_var.units = 'm'
+    y_var.step = args.y_step
+    y_var[:] = grid.y_axis
+
+    proj_var = grid_ds.createVariable(names.VAR_PROJECTION, 'c')
+    proj_var.description = \
         re.sub(r'\s{2,}', ' ',
                converter.projection.__doc__.replace('\n', ' ')).strip() + \
         ' ' \
@@ -143,222 +162,38 @@ def cmd(args):
         '(origin_lat;origin_lon) to its center and to adjust the ' \
         'orientation of the axes of the projection plane with respect to ' \
         'the surface.'
-    serializer.mapping_name = (converter.projection.standard_name +
-                               '+rotated_latitude_longitude')
-    serializer.earth_radius = args.earth_radius
-    serializer.orig_lat = args.orig_lat
-    serializer.orig_lon = args.orig_lon
-    serializer.standard_parallels = converter.projection.true_scale_lats
-    serializer.rot_axes_ids = converter.rotor.rot_axes_ids
-    serializer.rot_angles_deg = converter.rotor.rot_angles_deg
-    serializer.proj_short_name = converter.projection.short_name
-    serializer.lats = lats
-    serializer.lons = lons
-    serializer.easting = converter.translator.easting
-    serializer.northing = converter.translator.northing
+    proj_var.grid_mapping_name = (converter.projection.standard_name +
+                                  '+rotated_latitude_longitude')
+    proj_var.earth_radius = args.earth_radius
+    proj_var.latitude_of_projection_origin = args.orig_lat
+    proj_var.longitude_of_projection_origin = args.orig_lon
+    proj_var.standard_parallel = converter.projection.true_scale_lats
+    proj_var.rot_axes = converter.rotor.rot_axes_ids
+    proj_var.rot_angles_deg = converter.rotor.rot_angles_deg
+    proj_var.short_name = converter.projection.short_name
+    proj_var.false_easting = converter.translator.easting
+    proj_var.false_northing = converter.translator.northing
 
-    serializer.save()
+    lats, lons = converter.restore_points(grid[:, :, 0], grid[:, :, 1])
 
+    lats_var = grid_ds.createVariable(names.DIMVAR_LAT, lats.dtype,
+                                      dimensions=(
+                                          names.DIMVAR_Y,
+                                          names.DIMVAR_X))
+    lats_var.units = 'degrees_north'
+    lats_var.long_name = 'latitude coordinate'
+    lats_var.standard_name = 'latitude'
+    lats_var[:] = lats
 
-def get_serializer_from_args(args):
-    format_lower = args.output_format.lower()
+    lons_var = grid_ds.createVariable(names.DIMVAR_LON, lons.dtype,
+                                      dimensions=(
+                                          names.DIMVAR_Y,
+                                          names.DIMVAR_X))
+    lons_var.units = 'degrees_east'
+    lons_var.long_name = 'longitude coordinate'
+    lons_var.standard_name = 'longitude'
+    lons_var[:] = lons
 
-    if format_lower == 'txt':
-        return TextSerializer(args.output_file)
-    elif format_lower == 'nc':
-        return NetCDFSerializer(args.output_file)
-    else:
-        raise Exception(
-            'Unknown output format: \'' + args.output_format + '\'.')
+    add_or_append_history(grid_ds)
 
-
-def _generate_cartesian_grid(x_start, x_count, x_step,
-                             y_start, y_count, y_step):
-    x_array = np.linspace(x_start, x_start + (x_count - 1) * x_step,
-                          num=x_count)
-    y_array = np.linspace(y_start, y_start + (y_count - 1) * y_step,
-                          num=y_count)
-
-    return np.meshgrid(x_array, y_array)
-
-
-class OutputSerializer(object):
-    title = None
-    xx = None
-    x_step = None
-    easting = None
-    yy = None
-    y_step = None
-    northing = None
-    proj_description = None
-    mapping_name = None
-    earth_radius = None
-    orig_lat = None
-    orig_lon = None
-    standard_parallels = None
-    rot_axes_ids = None
-    rot_angles_deg = None
-    proj_short_name = None
-    lats = None
-    lons = None
-
-    def save(self):
-        pass
-
-
-class NetCDFSerializer(OutputSerializer):
-    def __init__(self, filename):
-        self.filename = filename
-
-    def save(self):
-        create_dir_for_file(self.filename)
-        from netCDF4 import Dataset
-        ds = Dataset(self.filename, mode='w', format='NETCDF4')
-        ds.title = self.title
-
-        ds.createDimension(names.DIMVAR_X, len(self.xx[0]))
-        x_var = ds.createVariable(names.DIMVAR_X, self.xx.dtype,
-                                  dimensions=(names.DIMVAR_X,))
-        x_var.long_name = 'x coordinate of projection'
-        x_var.standard_name = 'projection_x_coordinate'
-        x_var.axis = 'X'
-        x_var.units = 'm'
-        x_var.step = self.x_step
-        x_var[:] = self.xx[0]
-
-        ds.createDimension(names.DIMVAR_Y, len(self.yy))
-        y_var = ds.createVariable(names.DIMVAR_Y, self.yy.dtype,
-                                  dimensions=(names.DIMVAR_Y,))
-        y_var.long_name = 'y coordinate of projection'
-        y_var.standard_name = 'projection_y_coordinate'
-        y_var.axis = 'Y'
-        y_var.units = 'm'
-        y_var.step = self.y_step
-        y_var[:] = self.yy[:, 1]
-
-        proj_var = ds.createVariable(names.VAR_PROJECTION, 'c')
-        proj_var.description = self.proj_description
-        proj_var.grid_mapping_name = self.mapping_name
-        proj_var.earth_radius = self.earth_radius
-        proj_var.latitude_of_projection_origin = self.orig_lat
-        proj_var.longitude_of_projection_origin = self.orig_lon
-        proj_var.standard_parallel = self.standard_parallels
-        proj_var.rot_axes = self.rot_axes_ids
-        proj_var.rot_angles_deg = self.rot_angles_deg
-        proj_var.short_name = self.proj_short_name
-        proj_var.false_easting = self.easting
-        proj_var.false_northing = self.northing
-
-        lats_var = ds.createVariable(names.DIMVAR_LAT, self.lats.dtype,
-                                     dimensions=(
-                                         names.DIMVAR_Y,
-                                         names.DIMVAR_X))
-        set_generic_lat_attributes(lats_var)
-        lats_var[:, :] = self.lats
-
-        lons_var = ds.createVariable(names.DIMVAR_LON, self.lons.dtype,
-                                     dimensions=(
-                                         names.DIMVAR_Y,
-                                         names.DIMVAR_X))
-        set_generic_lon_attributes(lons_var)
-        lons_var[:, :] = self.lons
-
-        add_or_append_history(ds)
-
-        ds.close()
-
-
-class TextSerializer(OutputSerializer):
-    def __init__(self, filename):
-        self.filename = filename
-
-    _COMMENT_PREFIX = '#'
-    _MAX_WRAP_WIDTH = 79
-
-    def save(self):
-        create_dir_for_file(self.filename)
-        with open(self.filename, 'w') as f:
-            f.writelines(TextSerializer._comment('Title:'))
-            f.writelines(
-                TextSerializer._wrap_and_comment(self.title, indent=4))
-            f.writelines(TextSerializer._comment('Projection:'))
-            f.writelines(
-                TextSerializer._comment('Name: ' + self.mapping_name,
-                                        indent=4))
-            f.writelines(TextSerializer._comment(
-                'Earth radius: %s m' %
-                TextSerializer._float_to_string(self.earth_radius), indent=4))
-
-            f.writelines(TextSerializer._comment(
-                'Origin: (%s; %s)' % (
-                    TextSerializer._float_to_string(self.orig_lat),
-                    TextSerializer._float_to_string(self.orig_lon)),
-                indent=4))
-
-            f.writelines(TextSerializer._comment(
-                'Standard parallels: ' + '; '.join(
-                    str(p) for p in self.standard_parallels), indent=4))
-
-            f.writelines(TextSerializer._comment('Rotations: ' + '; '.join(
-                '%s (%s)' % (i, TextSerializer._float_to_string(a)) for i, a in
-                zip(self.rot_axes_ids, self.rot_angles_deg)), indent=4))
-
-            f.writelines(TextSerializer._comment('Description:', indent=4))
-
-            f.writelines(
-                TextSerializer._wrap_and_comment(self.proj_description,
-                                                 indent=8))
-
-            f.writelines(TextSerializer._comment(
-                'Grid size: %ix%i' % (len(self.xx), len(self.xx[0]))))
-
-            f.writelines(TextSerializer._comment(
-                'False easting: %s' % TextSerializer._float_to_string(
-                    self.easting)))
-            f.writelines(TextSerializer._comment(
-                'False northing: %s' % TextSerializer._float_to_string(
-                    self.northing)))
-
-            f.writelines(TextSerializer._comment(
-                'X coordinates of projection (step %s m)' %
-                TextSerializer._float_to_string(self.x_step)))
-            TextSerializer._write_matrix(self.xx, f)
-
-            f.writelines(TextSerializer._comment(
-                'Y coordinates of projection (step %s m)' %
-                TextSerializer._float_to_string(self.x_step)))
-            TextSerializer._write_matrix(self.yy, f)
-
-            f.writelines(TextSerializer._comment(
-                'Latitude coordinates (degrees north)' % self.x_step))
-            TextSerializer._write_matrix(self.lats, f)
-
-            f.writelines(TextSerializer._comment(
-                'Longitude coordinates (degrees east)' % self.x_step))
-            TextSerializer._write_matrix(self.lons, f)
-
-    @staticmethod
-    def _wrap_and_comment(text, **kwargs):
-        indent = kwargs.get('indent', 1)
-        import textwrap
-        return TextSerializer._comment(
-            *textwrap.wrap(text, width=(
-                TextSerializer._MAX_WRAP_WIDTH - indent - len(
-                    TextSerializer._COMMENT_PREFIX))), indent=indent)
-
-    @staticmethod
-    def _comment(*lines, **kwargs):
-        indent = kwargs.get('indent', 1)
-        return [TextSerializer._COMMENT_PREFIX + (' ' * indent) + l + '\n' for
-                l in lines]
-
-    @staticmethod
-    def _float_to_string(value):
-        return ('%.15f' % value).rstrip('0').rstrip('.')
-
-    @staticmethod
-    def _write_matrix(matrix, stream):
-        for row in matrix:
-            stream.write(
-                '\t'.join(
-                    TextSerializer._float_to_string(v) for v in row) + '\n')
+    grid_ds.close()

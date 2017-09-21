@@ -144,18 +144,6 @@ def get_time_converter(time_var):
                  calendar=getattr(time_var, 'calendar', 'standard'))
 
 
-def set_generic_lat_attributes(lat_var):
-    lat_var.units = 'degrees_north'
-    lat_var.long_name = 'latitude coordinate'
-    lat_var.standard_name = 'latitude'
-
-
-def set_generic_lon_attributes(lon_var):
-    lon_var.units = 'degrees_east'
-    lon_var.long_name = 'longitude coordinate'
-    lon_var.standard_name = 'longitude'
-
-
 def add_or_append_history(dataset, ignored_args=None):
     add_history(dataset, get_history(dataset), ignored_args)
 
@@ -255,7 +243,7 @@ def init_grid_from_vars(x_var, y_var):
             raise Exception()
         return StructuredGrid(xx=x_var[:], yy=y_var[:]), x_var.dimensions
     else:
-        return RectilinearGrid(x=x_var[:], y=y_var[:]), \
+        return RectilinearGrid(x=x_var[:], y=y_var[:], copy_values=False), \
                y_var.dimensions + x_var.dimensions
 
 

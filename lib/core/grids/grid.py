@@ -9,3 +9,10 @@ class Grid(object):
 
     def calc_weights(self, *args):
         raise NotImplementedError()
+
+    @property
+    def dtype(self):
+        raise NotImplementedError()
+
+    def __getitem__(self, item):
+        raise NotImplementedError()
