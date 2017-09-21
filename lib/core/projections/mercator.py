@@ -69,7 +69,7 @@ class MercatorProjection(Projection):
 
     def restore_vectors(self, uu, vv, xx, yy, return_points=False):
         if return_points:
-            lats, lons = self.restore_point(xx, yy)
+            lats, lons = self.restore_points(xx, yy)
             return uu, vv, lats, lons
         else:
             return uu, vv

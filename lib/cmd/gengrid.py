@@ -174,7 +174,10 @@ def cmd(args):
     proj_var.false_easting = converter.translator.easting
     proj_var.false_northing = converter.translator.northing
 
-    lats, lons = converter.restore_points(grid[:, :, 0], grid[:, :, 1])
+    rot_uu, rot_vv, lats, lons = converter.restore_vectors(
+        np.ones(grid.shape), np.zeros(grid.shape),
+        grid[:, :, 0], grid[:, :, 1],
+        True)
 
     lats_var = grid_ds.createVariable(names.DIMVAR_LAT, lats.dtype,
                                       dimensions=(
@@ -193,6 +196,15 @@ def cmd(args):
     lons_var.long_name = 'longitude coordinate'
     lons_var.standard_name = 'longitude'
     lons_var[:] = lons
+
+    restore_angles = np.degrees(np.arctan2(rot_vv, rot_uu))
+    restore_angles_var = grid_ds.createVariable('restore_angles',
+                                                restore_angles.dtype,
+                                                dimensions=(names.DIMVAR_Y,
+                                                            names.DIMVAR_X))
+    restore_angles_var.units = 'degrees'
+    restore_angles_var.long_name = 'restore rotation angles'
+    restore_angles_var[:] = restore_angles
 
     add_or_append_history(grid_ds)
 
