@@ -1,7 +1,7 @@
 import importlib
 
 commands = ['gengrid', 'project', 'overlap', 'append', 'calcmask',
-            'applymask', 'slice', 'interp', 'addpole', 'rotate', 'tonc4']
+            'applymask', 'pick', 'interp', 'addpole', 'rotate', 'tonc4']
 
 
 def get_module(name):

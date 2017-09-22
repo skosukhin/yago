@@ -13,17 +13,16 @@ from cmd.common.nc_utils import MAX_COPY_DIM_COUNT, \
     DimIterator, add_history, get_history, get_time_converter, \
     create_nc_var_like_other
 
-description = 'slices fields'
+description = 'picks and slices variables'
 
 
 def setup_parser(parser):
     mandatory_args = parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('--input-file',
-                                help='name of netcdf file that contains data '
-                                     'that need to be sliced',
+                                help='name of the input netcdf file',
                                 required=True)
     mandatory_args.add_argument('--output-file',
-                                help='output filename',
+                                help='name of the output netcdf file',
                                 required=True)
     string_list_parser = ListParser()
     mandatory_args.add_argument('--var-names',
@@ -343,8 +342,8 @@ class AddToDictAction(argparse.Action):
             setattr(namespace, self.dest, d)
         key = values[0]
         if key in d:
-            parser.error('Only one operation of the same type per variable is '
-                         'allowed.')
+            parser.error('Only one slice operation of the same type per '
+                         'variable is allowed.')
         d[key] = values[1]
 
 
