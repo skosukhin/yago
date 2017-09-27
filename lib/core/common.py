@@ -53,9 +53,17 @@ def apply_rot_matrices(uu, vv, rot_matrices):
     :param rot_matrices: Rotation matrices.
     :return: Tuple of scalars or arrays of components of the rotated vectors.
     """
-    rot_vecs = np.einsum('ij...,j...', rot_matrices, np.stack([uu, vv]))
+    stacked = np.ma.concatenate([uu[np.newaxis, ...], vv[np.newaxis, ...]])
+    rot_vecs = np.einsum('ij...,j...', rot_matrices, stacked)
+
     rot_uu = rot_vecs[..., 0]
     rot_vv = rot_vecs[..., 1]
+
+    mask = np.ma.getmask(uu)
+    if mask is not np.ma.nomask:
+        rot_uu = np.ma.masked_where(mask, rot_uu)
+        rot_vv = np.ma.masked_where(mask, rot_vv)
+
     return rot_uu, rot_vv
 
 

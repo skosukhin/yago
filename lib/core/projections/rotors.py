@@ -174,6 +174,11 @@ class Rotor(object):
         rot_uu = np.einsum('...i,...i', rot_vectors_3d, rot_easts)
         rot_vv = np.einsum('...i,...i', rot_vectors_3d, rot_norths)
 
+        mask = np.ma.getmask(uu)
+        if mask is not np.ma.nomask:
+            rot_uu = np.ma.masked_where(mask, rot_uu)
+            rot_vv = np.ma.masked_where(mask, rot_vv)
+
         if return_point:
             return rot_uu, rot_vv, rot_lats, rot_lons
         else:
