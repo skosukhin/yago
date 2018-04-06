@@ -1,6 +1,6 @@
 import importlib
 
-commands = ['gengrid', 'project', 'overlap', 'append', 'calcmask',
+commands = ['gengrid', 'viewgrid', 'project', 'overlap', 'append', 'calcmask',
             'applymask', 'pick', 'interp', 'addpole', 'rotate', 'tonc4']
 
 
