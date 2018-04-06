@@ -104,3 +104,6 @@ class Projection(object):
         coordinates of the vectors' origins (in degrees).
         """
         raise NotImplementedError()
+
+    def get_scale_factors(self, lats, lons):
+        raise NotImplementedError()

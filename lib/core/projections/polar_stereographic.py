@@ -24,9 +24,10 @@ class PolarStereographicProjection(Projection):
         :param true_lat: Latitude of true scale (in degrees).
         :param earth_radius: Earth radius (in meters).
         """
-        self.z = np.sin(np.radians(true_lat)) + 1.0
         self.true_scale_lats = [true_lat]
         self.earth_radius = earth_radius
+
+        self._z = np.sin(np.radians(true_lat)) + 1.0
 
     @classmethod
     def unified_init(cls, earth_radius, true_lats):
@@ -48,7 +49,7 @@ class PolarStereographicProjection(Projection):
     def convert_points(self, lats, lons):
         c_lats, s_lats = cos_sin_deg(lats)
         c_lons, s_lons = cos_sin_deg(lons)
-        rr = self.z * self.earth_radius * c_lats / (1.0 + s_lats)
+        rr = self._z * self.earth_radius * c_lats / (1.0 + s_lats)
         xx = rr * s_lons
         yy = -rr * c_lons
         return xx, yy
@@ -56,7 +57,7 @@ class PolarStereographicProjection(Projection):
     def restore_points(self, xx, yy):
         xx, yy = np.asanyarray(xx), np.asanyarray(yy)
         rr = np.sqrt(xx * xx + yy * yy) / self.earth_radius
-        lats = np.degrees(HALF_PI - 2.0 * np.arctan(rr / self.z))
+        lats = np.degrees(HALF_PI - 2.0 * np.arctan(rr / self._z))
         lons = np.degrees(np.arctan2(xx, -yy))
         return lats, lons
 
@@ -75,3 +76,7 @@ class PolarStereographicProjection(Projection):
             return rot_uu, rot_vv, lats, lons
         else:
             return rot_uu, rot_vv
+
+    def get_scale_factors(self, lats, lons):
+        return self._z / (1.0 + np.sin(np.radians(lats)))
+
