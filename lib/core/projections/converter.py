@@ -1,7 +1,7 @@
 class Converter(object):
     """
     Links the geographical coordinate system with a Cartesian coordinate
-    system by combining rotation and projection transformations.
+    system by combining rotation, projection and translation transformations.
     """
 
     def __init__(self, rotor, projection, translator):
@@ -9,6 +9,7 @@ class Converter(object):
         Constructor of the class.
         :param rotor: Instance of the class Rotor
         :param projection: Instance of the class Projection.
+        :param translator: Instance of the class Translator.
         """
         self._rotor = rotor
         self._projection = projection
@@ -64,9 +65,8 @@ class Converter(object):
             return proj_uu, proj_vv, xx, yy
 
     def restore_vectors(self, uu, vv, xx, yy, return_points=False):
-        if return_points:
-            xx, yy = self._translator.restore_points(xx, yy)
+        proj_xx, proj_yy = self._translator.restore_points(xx, yy)
         rot_uu, rot_vv, rot_lats, rot_lons = \
-            self._projection.restore_vectors(uu, vv, xx, yy, True)
+            self._projection.restore_vectors(uu, vv, proj_xx, proj_yy, True)
         return self._rotor.restore_vectors(rot_uu, rot_vv, rot_lats, rot_lons,
                                            return_points)
