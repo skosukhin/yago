@@ -70,3 +70,7 @@ class Converter(object):
             self._projection.restore_vectors(uu, vv, proj_xx, proj_yy, True)
         return self._rotor.restore_vectors(rot_uu, rot_vv, rot_lats, rot_lons,
                                            return_points)
+
+    def get_scale_factors(self, lats, lons):
+        rot_lats, rot_lons = self.rotor.convert_points(lats, lons)
+        return self.projection.get_scale_factors(rot_lats, rot_lons)

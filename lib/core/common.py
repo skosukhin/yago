@@ -1,7 +1,6 @@
 import numpy as np
 
 HALF_PI = np.pi / 2.0
-QUARTER_PI = np.pi / 4.0
 POLE_TOLERANCE = 1e-5
 
 

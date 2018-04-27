@@ -1,6 +1,6 @@
 import numpy as np
 
-from core.common import QUARTER_PI, HALF_PI
+from core.common import HALF_PI
 from core.projections.projection import Projection
 from core.projections.rotors import Rotor, RotorZ, RotorY
 
@@ -25,9 +25,10 @@ class MercatorProjection(Projection):
         :param true_lat: Latitude of true scale (in degrees).
         :param earth_radius: Earth radius (in meters).
         """
-        self.k = np.cos(np.radians(true_lat))
         self.true_scale_lats = [true_lat]
         self.earth_radius = earth_radius
+
+        self._k = np.cos(np.radians(true_lat))
 
     @classmethod
     def unified_init(cls, earth_radius, true_lats):
@@ -48,16 +49,16 @@ class MercatorProjection(Projection):
                            RotorY(90.0))
 
     def convert_points(self, lats, lons):
-        xx = self.k * self.earth_radius * np.radians(lons)
-        yy = self.k * self.earth_radius * np.log(
-            np.tan(QUARTER_PI + np.radians(lats) / 2.0))
+        xx = self._k * self.earth_radius * np.radians(lons)
+        yy = self._k * self.earth_radius * np.log(
+            np.tan((HALF_PI + np.radians(lats)) / 2.0))
         return xx, yy
 
     def restore_points(self, xx, yy):
         xx, yy = np.asanyarray(xx), np.asanyarray(yy)
-        lons = np.degrees(xx / (self.earth_radius * self.k))
+        lons = np.degrees(xx / (self.earth_radius * self._k))
         lats = np.degrees(2.0 * np.arctan(
-            np.exp(yy / (self.earth_radius * self.k))) - HALF_PI)
+            np.exp(yy / (self.earth_radius * self._k))) - HALF_PI)
         return lats, lons
 
     def convert_vectors(self, uu, vv, lats, lons, return_points=False):
@@ -73,3 +74,7 @@ class MercatorProjection(Projection):
             return uu, vv, lats, lons
         else:
             return uu, vv
+
+    def get_scale_factors(self, lats, lons):
+        k = self._k * np.cos(np.radians(lats))
+        return k, k

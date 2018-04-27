@@ -1,6 +1,6 @@
 import numpy as np
 
-from core.common import QUARTER_PI, rotate_vectors_deg
+from core.common import HALF_PI, rotate_vectors_deg
 from core.projections.projection import Projection
 from core.projections.rotors import Rotor, RotorZ, RotorY
 
@@ -30,28 +30,32 @@ class LambertConformalProjection(Projection):
         greater or equal to 45).
         :param earth_radius: Earth radius (in meters).
         """
-        phi1_rad = np.radians(true_lat1)
-        phi2_rad = np.radians(true_lat2)
         self.earth_radius = earth_radius
         self.true_scale_lats = [true_lat1, true_lat2]
 
+        phi1_rad = np.radians(true_lat1)
+        phi2_rad = np.radians(true_lat2)
+
+        self._cos_phi1 = np.cos(phi1_rad)
+        self._tan_quart_pi_half_phi1 = np.tan((HALF_PI + phi1_rad) / 2.0)
+
         if np.fabs(true_lat1 - true_lat2) < np.finfo(float).eps:
-            self.n = np.sin(phi1_rad)
+            self._n = np.sin(phi1_rad)
         else:
-            self.n = (np.log(np.cos(phi1_rad) / np.cos(phi2_rad)) /
-                      np.log(
-                          np.tan(QUARTER_PI + phi2_rad / 2.0) /
-                          np.tan(QUARTER_PI + phi1_rad / 2.0)))
-        self.n_sign = np.sign(self.n)
-        self.f = (np.cos(phi1_rad) *
-                  np.power(np.tan(QUARTER_PI + phi1_rad / 2.0), self.n) /
-                  self.n)
-        self.rho0 = (self.f *
-                     np.power(np.tan(
-                         QUARTER_PI +
-                         np.radians(
-                             LambertConformalProjection._CENTER_LAT) / 2.0),
-                         -self.n))
+            self._n = (np.log(self._cos_phi1 / np.cos(phi2_rad)) /
+                       np.log(
+                           np.tan((HALF_PI + phi2_rad) / 2.0) /
+                           self._tan_quart_pi_half_phi1))
+
+        self._f = (self._cos_phi1 *
+                   np.power(self._tan_quart_pi_half_phi1, self._n) / self._n)
+
+        tan_quart_pi_half_center_lat = np.tan(
+            (HALF_PI + np.radians(LambertConformalProjection._CENTER_LAT)) /
+            2.0)
+
+        self._rho0 = (self._f *
+                      np.power(tan_quart_pi_half_center_lat, -self._n))
 
     @classmethod
     def unified_init(cls, earth_radius, true_lats):
@@ -84,7 +88,7 @@ class LambertConformalProjection(Projection):
         return self._restore_from_unitless(xx_unitless, yy_unitless)
 
     def convert_vectors(self, uu, vv, lats, lons, return_points=False):
-        rot_uu, rot_vv = rotate_vectors_deg(uu, vv, lons * self.n)
+        rot_uu, rot_vv = rotate_vectors_deg(uu, vv, lons * self._n)
         if return_points:
             xx, yy = self.convert_points(lats, lons)
             return rot_uu, rot_vv, xx, yy
@@ -93,25 +97,39 @@ class LambertConformalProjection(Projection):
 
     def restore_vectors(self, uu, vv, xx, yy, return_points=False):
         lats, lons = self.restore_points(xx, yy)
-        rot_uu, rot_vv = rotate_vectors_deg(uu, vv, -lons * self.n)
+        rot_uu, rot_vv = rotate_vectors_deg(uu, vv, -lons * self._n)
         if return_points:
             return rot_uu, rot_vv, lats, lons
         else:
             return rot_uu, rot_vv
 
+    def get_scale_factors(self, lats, lons):
+        lats_rad = np.radians(lats)
+
+        k = (self._cos_phi1 / np.cos(lats_rad) *
+             np.power(self._tan_quart_pi_half_phi1 /
+                      np.tan((HALF_PI + lats_rad) / 2.0),
+                      self._n))
+
+        return k, k
+
     def _convert_to_unitless(self, lats, lons):
-        rho = self.f * np.power(np.tan(QUARTER_PI + np.radians(lats) / 2.0),
-                                -self.n)
-        nlo = self.n * np.radians(lons)
+        rho = (self._f *
+               np.power(np.tan((HALF_PI + np.radians(lats)) / 2.0), -self._n))
+
+        nlo = self._n * np.radians(lons)
         x = rho * np.sin(nlo)
-        y = self.rho0 - rho * np.cos(nlo)
+        y = self._rho0 - rho * np.cos(nlo)
         return x, y
 
     def _restore_from_unitless(self, xx, yy):
-        rho = self.n_sign * np.sqrt(np.power(xx, 2.0) +
-                                    np.power(self.rho0 - yy, 2.0))
-        theta = np.arctan(xx / (self.rho0 - yy))
-        lats = (2.0 * np.arctan(np.power(self.f / rho, 1.0 / self.n)) -
-                np.pi / 2.0)
-        lons = theta / self.n
+        rho = np.sign(self._n) * np.sqrt(np.power(xx, 2.0) +
+                                         np.power(self._rho0 - yy, 2.0))
+
+        theta = np.arctan(xx / (self._rho0 - yy))
+
+        lats = (2.0 * np.arctan(np.power(self._f / rho, 1.0 / self._n)) -
+                HALF_PI)
+
+        lons = theta / self._n
         return np.degrees(lats), np.degrees(lons)

@@ -174,10 +174,19 @@ def cmd(args):
     proj_var.false_easting = converter.translator.easting
     proj_var.false_northing = converter.translator.northing
 
-    rot_uu, rot_vv, lats, lons = converter.restore_vectors(
-        np.ones(grid.shape), np.zeros(grid.shape),
-        grid[:, :, 0], grid[:, :, 1],
-        True)
+    proj_xx, proj_yy = converter.translator.restore_points(grid[:, :, 0],
+                                                           grid[:, :, 1])
+    rot_uu, rot_vv, rot_lats, rot_lons = \
+        converter.projection.restore_vectors(np.ones(grid.shape),
+                                             np.zeros(grid.shape),
+                                             proj_xx,
+                                             proj_yy,
+                                             True)
+
+    uu, vv, lats, lons = \
+        converter.rotor.restore_vectors(rot_uu, rot_vv,
+                                        rot_lats, rot_lons,
+                                        True)
 
     lats_var = grid_ds.createVariable(names.DIMVAR_LAT, lats.dtype,
                                       dimensions=(
@@ -197,14 +206,40 @@ def cmd(args):
     lons_var.standard_name = 'longitude'
     lons_var[:] = lons
 
-    restore_angles = np.degrees(np.arctan2(rot_vv, rot_uu))
+    restore_angles = np.degrees(np.arctan2(vv, uu))
     restore_angles_var = grid_ds.createVariable('restore_angles',
                                                 restore_angles.dtype,
                                                 dimensions=(names.DIMVAR_Y,
                                                             names.DIMVAR_X))
     restore_angles_var.units = 'degrees'
     restore_angles_var.long_name = 'restore rotation angles'
+    restore_angles_var.description =\
+        'Rotate by these angles (counter-clockwise in a right-handed ' \
+        'system) to convert vectors defined in Cartesian coordinates on a ' \
+        'plane into vectors defined on a sphere in zonal and meridional ' \
+        'components.'
     restore_angles_var[:] = restore_angles
+
+    zonal_scales, meridional_scales = \
+        converter.projection.get_scale_factors(rot_lats, rot_lons)
+
+    zonal_scales_var = grid_ds.createVariable('zonal_scale_factors',
+                                              zonal_scales.dtype,
+                                              dimensions=(names.DIMVAR_Y,
+                                                          names.DIMVAR_X))
+    zonal_scales_var.long_name = 'zonal scale factors'
+    zonal_scales_var.description = 'scale along the parallels as defined ' \
+                                   'for Tissot indicatrix'
+    zonal_scales_var[:] = zonal_scales
+
+    meridional_scales_var = grid_ds.createVariable('meridional_scale_factors',
+                                                   meridional_scales.dtype,
+                                                   dimensions=(names.DIMVAR_Y,
+                                                               names.DIMVAR_X))
+    meridional_scales_var.long_name = 'meridional scale factors'
+    meridional_scales_var.description = 'scale along the meridian as ' \
+                                        'defined for Tissot indicatrix'
+    meridional_scales_var[:] = meridional_scales
 
     add_or_append_history(grid_ds)
 

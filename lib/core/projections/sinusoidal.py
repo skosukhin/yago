@@ -78,3 +78,11 @@ class SinusoidalProjection(Projection):
             return uu, vv, lats, lons
         else:
             return uu, vv
+
+    def get_scale_factors(self, lats, lons):
+        meridional = np.sqrt(1.0 +
+                             np.power(np.radians(lons), 2.0) *
+                             np.power(np.sin(np.radians(lats)), 2.0))
+
+        zonal = np.ones(meridional.shape, meridional.dtype)
+        return zonal, meridional

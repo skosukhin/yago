@@ -1,4 +1,3 @@
-
 class Projection(object):
     short_name = None
     long_name = None
@@ -102,5 +101,18 @@ class Projection(object):
         of the vectors. If the flag return_points is set to True, than the
         result tuple is extended with scalars or arrays of geographical
         coordinates of the vectors' origins (in degrees).
+        """
+        raise NotImplementedError()
+
+    def get_scale_factors(self, lats, lons):
+        """
+        Calculates scale distortions induces by the projection in given points.
+        :param lats: Scalar or array of geographical latitudes of points
+        (in degrees).
+        :param lons: Scalar or array of geographical longitudes of points
+        (in degrees).
+        :return: Tuple of scalars or arrays of zonal and meridional distortions
+        respectively. In the case of a conformal projection, both elements of
+        the tuple reference the same array.
         """
         raise NotImplementedError()
