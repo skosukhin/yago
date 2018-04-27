@@ -14,9 +14,12 @@ def setup_parser(parser):
     subparsers = parser.add_subparsers(metavar='command',
                                        dest='interp_command')
     for c in interp_commands:
-        module = get_module(c)
-        sub = subparsers.add_parser(c, help=module.description)
-        module.setup_parser(sub)
+        try:
+            module = get_module(c)
+            sub = subparsers.add_parser(c, help=module.description)
+            module.setup_parser(sub)
+        except ImportError:
+            pass
 
 
 def cmd(args):

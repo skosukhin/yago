@@ -27,9 +27,12 @@ subparsers = parser.add_subparsers(metavar='command', dest='command')
 import cmd
 
 for c in cmd.commands:
-    module = cmd.get_module(c)
-    sub = subparsers.add_parser(c, help=module.description)
-    module.setup_parser(sub)
+    try:
+        module = cmd.get_module(c)
+        sub = subparsers.add_parser(c, help=module.description)
+        module.setup_parser(sub)
+    except ImportError:
+        pass
 
 if len(sys.argv) == 1:
     parser.print_help()
