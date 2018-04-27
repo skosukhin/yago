@@ -4,7 +4,22 @@ from netCDF4 import Dataset
 import cmd.common.name_constants as names
 from cmd.common.nc_utils import init_converter_from_proj_var
 
+_cmd_disabled = False
+_disabled_reason_msg = None
+try:
+    # import matplotlib
+    # matplotlib.use('TkAgg')
+    from mpl_toolkits.basemap import Basemap
+    import matplotlib.pyplot as plt
+
+except ImportError as e:
+    _cmd_disabled = True
+    _disabled_reason_msg = e.message
+
 description = 'shows generated grids'
+
+if _cmd_disabled:
+    description += ' (DISABLED: {0})'.format(_disabled_reason_msg)
 
 
 def setup_parser(parser):
@@ -20,13 +35,9 @@ def setup_parser(parser):
 
 
 def cmd(args):
-    try:
-        # import matplotlib
-        # matplotlib.use('TkAgg')
-        from mpl_toolkits.basemap import Basemap
-        import matplotlib.pyplot as plt
-    except ImportError:
-        raise Exception('Failed to load Basemap module.')
+    if _cmd_disabled:
+        raise Exception(
+            'The command is disabled: {0}'.format(_disabled_reason_msg))
 
     in_ds = Dataset(args.input_file, 'r')
     lats = in_ds.variables[names.DIMVAR_LAT][:]
