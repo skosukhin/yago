@@ -75,3 +75,13 @@ def rotate_vectors_deg(uu, vv, angle_degs):
     :return: Tuple of scalars or arrays of components of the rotated vectors.
     """
     return apply_rot_matrices(uu, vv, gen_rot_matrices_deg(angle_degs))
+
+
+def almost_equal(x, y, nulp=1):
+    """
+    Borrowed from numpy.testing.assert_array_almost_equal_nulp
+    """
+    ax = np.fabs(x)
+    ay = np.fabs(y)
+    ref = nulp * np.spacing(np.where(ax > ay, ax, ay))
+    return np.all(np.abs(x - y) <= ref)

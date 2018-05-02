@@ -1,6 +1,6 @@
 import numpy as np
 
-from core.common import HALF_PI, rotate_vectors_deg
+from core.common import HALF_PI, rotate_vectors_deg, almost_equal
 from core.projections.projection import Projection
 from core.projections.rotors import Rotor, RotorZ, RotorY
 
@@ -31,21 +31,23 @@ class LambertConformalProjection(Projection):
         :param earth_radius: Earth radius (in meters).
         """
         self.earth_radius = earth_radius
-        self.true_scale_lats = [true_lat1, true_lat2]
 
         phi1_rad = np.radians(true_lat1)
         phi2_rad = np.radians(true_lat2)
 
         self._cos_phi1 = np.cos(phi1_rad)
         self._tan_quart_pi_half_phi1 = np.tan((HALF_PI + phi1_rad) / 2.0)
+        tan_quart_pi_half_phi2 = np.tan((HALF_PI + phi2_rad) / 2.0)
 
-        if np.fabs(true_lat1 - true_lat2) < np.finfo(float).eps:
+        if almost_equal(tan_quart_pi_half_phi2, self._tan_quart_pi_half_phi1):
+            self.true_scale_lats = [true_lat1, true_lat1]
             self._n = np.sin(phi1_rad)
         else:
-            self._n = (np.log(self._cos_phi1 / np.cos(phi2_rad)) /
-                       np.log(
-                           np.tan((HALF_PI + phi2_rad) / 2.0) /
-                           self._tan_quart_pi_half_phi1))
+            self.true_scale_lats = [true_lat1, true_lat2]
+            self._n = (np.log(self._cos_phi1 /
+                              np.cos(phi2_rad)) /
+                       np.log(tan_quart_pi_half_phi2 /
+                              self._tan_quart_pi_half_phi1))
 
         self._f = (self._cos_phi1 *
                    np.power(self._tan_quart_pi_half_phi1, self._n) / self._n)

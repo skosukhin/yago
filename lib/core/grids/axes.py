@@ -2,6 +2,7 @@ import copy
 
 import numpy as np
 
+from core.common import almost_equal
 from core.grids.grid import Grid
 
 
@@ -113,12 +114,7 @@ def build_axis(axis_values, copy_values=True):
 
     result = RegularAxis(first, count, step)
 
-    try:
-        eps = np.finfo(step).eps
-    except:
-        eps = 0
-
-    if np.allclose(axis_values, result, atol=eps):
+    if almost_equal(axis_values, result):
         return result
     else:
         return axis_values \

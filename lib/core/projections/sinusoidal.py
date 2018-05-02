@@ -1,5 +1,6 @@
 import numpy as np
 
+from core.common import almost_equal
 from core.projections.projection import Projection
 from core.projections.rotors import Rotor, RotorZ, RotorY
 
@@ -31,9 +32,9 @@ class SinusoidalProjection(Projection):
     @classmethod
     def unified_init(cls, earth_radius, true_lats):
         if len(true_lats) == 1:
-            eps = np.finfo(SinusoidalProjection._TRUE_SCALE_LAT).eps
-            diff = np.fabs(true_lats[0] - SinusoidalProjection._TRUE_SCALE_LAT)
-            if diff >= eps:
+            if not almost_equal(true_lats[0],
+                                SinusoidalProjection._TRUE_SCALE_LAT,
+                                0):
                 raise Exception('True scale for Sinusoidal projection must '
                                 'be equal to ' +
                                 str(SinusoidalProjection._TRUE_SCALE_LAT) +
