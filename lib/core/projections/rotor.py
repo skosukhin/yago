@@ -1,6 +1,8 @@
+import itertools
+
 import numpy as np
 
-from core.common import cos_sin_deg
+from core.common import cos_sin_deg, almost_equal
 
 
 class Rotor(object):
@@ -14,20 +16,66 @@ class Rotor(object):
     the Northern Pole.
     """
 
-    def __init__(self):
-        self._rot_axes_ids = ()
-        self._rot_angles_deg = ()
-        self._rot_matrix_to = np.array(
-            [[1.0, 0.0, 0.0],
-             [0.0, 1.0, 0.0],
-             [0.0, 0.0, 1.0]])
-        self._rot_matrix_from = np.transpose(self._rot_matrix_to)
+    _ROT_MATRICES = {
+        'X':
+            lambda c, s: np.array([[1, 0.0, 0.0],
+                                   [0.0, c, -s],
+                                   [0.0, s, c]]),
+        'Y':
+            lambda c, s: np.array([[c, 0.0, s],
+                                   [0.0, 1.0, 0.0],
+                                   [-s, 0.0, c]]),
+        'Z':
+            lambda c, s: np.array([[c, -s, 0.0],
+                                   [s, c, 0.0],
+                                   [0.0, 0.0, 1.0]])}
+
+    def __init__(self, axes_names, angles_deg, simplify=False):
+        """
+        Constructor of the class.
+        :param axes_names: iterable containing chars that indicate axes
+        of rotations: 'X', 'Y', 'Z'.
+        :param angles_deg: iterable containing angles
+        of rotations (counter-clockwise, in degrees).
+        :param simplify: flag that indicates whether or not the
+        given sequence of rotations must be simplified
+        """
+
+        rot_axes_names = []
+        rot_angles_deg = []
+        for name, angle in itertools.izip(axes_names, angles_deg):
+            if name not in Rotor._ROT_MATRICES:
+                raise Exception('Unexpected axis name: ' + name +
+                                '. Expected values are: ' +
+                                ', '.join(Rotor._ROT_MATRICES.keys()))
+            rot_axes_names.append(name)
+            rot_angles_deg.append(angle)
+
+        if simplify:
+            rot_axes_names, rot_angles_deg =\
+                Rotor._simplify_sequence(rot_axes_names, rot_angles_deg)
+
+        if rot_axes_names:
+            name, angle = rot_axes_names[0], rot_angles_deg[0]
+            rot_matrix_to = Rotor._ROT_MATRICES[name](*cos_sin_deg(angle))
+            for name, angle in itertools.izip(rot_axes_names[1:],
+                                              rot_angles_deg[1:]):
+                rot_matrix_to = np.dot(
+                    Rotor._ROT_MATRICES[name](*cos_sin_deg(angle)),
+                    rot_matrix_to)
+        else:
+            rot_matrix_to = np.eye(3)
+
+        self._rot_axes_names = tuple(rot_axes_names)
+        self._rot_angles_deg = tuple(rot_angles_deg)
+        self._rot_matrix_to = rot_matrix_to
+        self._rot_matrix_from = np.transpose(rot_matrix_to)
         self._rot_matrix_from.flags.writeable = False
         self._rot_matrix_to.flags.writeable = False
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return (self._rot_axes_ids == other._rot_axes_ids and
+            return (self._rot_axes_names == other._rot_axes_names and
                     self._rot_angles_deg == other._rot_angles_deg and
                     np.array_equal(self._rot_matrix_to, other._rot_matrix_to))
         return NotImplemented
@@ -36,12 +84,12 @@ class Rotor(object):
         return not self == other
 
     def __hash__(self):
-        return hash((self._rot_axes_ids, self._rot_angles_deg,
+        return hash((self._rot_axes_names, self._rot_angles_deg,
                      self._rot_matrix_to.data))
 
     @property
-    def rot_axes_ids(self):
-        return self._rot_axes_ids
+    def rot_axes_names(self):
+        return self._rot_axes_names
 
     @property
     def rot_angles_deg(self):
@@ -121,25 +169,28 @@ class Rotor(object):
                                      return_points)
 
     @staticmethod
-    def chain(*rotors):
+    def build_rotor(geo_lat, geo_lon, rot_lat, rot_lon, norm_angle):
         """
-        Combines a sequence of rotors into a single one.
-        :param rotors: Rotors to be combined in a single rotation object.
-        :return: Instance of the class Rotor that represents a sequence of the
-        given rotations.
+        Creates an instance of the class Rotor that represents a sequence of
+        rotations of the geographical coordinate system so that a point with
+        given latitude and longitude gets given coordinates in the rotated
+        lat/lon coordinate system.
+        :param geo_lat: Latitude of the point in the geographical coordinate
+        system (in degrees).
+        :param geo_lon:  Longitude of the point in the geographical coordinate
+        system (in degrees).
+        :param rot_lat: Latitude of the point in the rotated lat/lon coordinate
+        system (in degrees).
+        :param rot_lon: Longitude of the point in the rotated lat/lon
+        coordinate system (in degrees).
+        :param norm_angle: Additional angle of rotation of the coordinate
+        system around the normal at the point (counter-clockwise, in degrees).
+        :return: Instance of the class Rotor.
         """
-        result = Rotor()
-        for rotor in rotors:
-            result._rot_axes_ids = result._rot_axes_ids + rotor._rot_axes_ids
-            result._rot_angles_deg = \
-                result._rot_angles_deg + rotor._rot_angles_deg
-            result._rot_matrix_to = np.dot(
-                rotor._rot_matrix_to,
-                result._rot_matrix_to)
-        result._rot_matrix_from = np.transpose(result._rot_matrix_to)
-        result._rot_matrix_from.flags.writeable = False
-        result._rot_matrix_to.flags.writeable = False
-        return result
+        return Rotor('ZYZYZ', [-geo_lon, geo_lat - 90.0,
+                               norm_angle,
+                               90.0 - rot_lat, rot_lon],
+                     simplify=True)
 
     @staticmethod
     def _rotate_points(rot_matrix, lats, lons):
@@ -205,44 +256,32 @@ class Rotor(object):
                          c_lats],
                         axis=-1)
 
+    @staticmethod
+    def _normalize_angle_deg(angle_deg):
+        return (angle_deg + 360) % 360
 
-class RotorX(Rotor):
-    def __init__(self, angle_deg):
-        self._rot_axes_ids = ('X',)
-        self._rot_angles_deg = (angle_deg,)
-        c, s = cos_sin_deg(angle_deg)
-        self._rot_matrix_to = np.array(
-            [[1, 0.0, 0.0],
-             [0.0, c, -s],
-             [0.0, s, c]])
-        self._rot_matrix_from = np.transpose(self._rot_matrix_to)
-        self._rot_matrix_from.flags.writeable = False
-        self._rot_matrix_to.flags.writeable = False
+    @staticmethod
+    def _simplify_sequence(axes_names, angles_deg):
+        result_axes_names, result_angles_deg = [], []
 
+        for name, angle in itertools.izip(axes_names, angles_deg):
 
-class RotorY(Rotor):
-    def __init__(self, angle_deg):
-        self._rot_axes_ids = ('Y',)
-        self._rot_angles_deg = (angle_deg,)
-        c, s = cos_sin_deg(angle_deg)
-        self._rot_matrix_to = np.array(
-            [[c, 0.0, s],
-             [0.0, 1.0, 0.0],
-             [-s, 0.0, c]])
-        self._rot_matrix_from = np.transpose(self._rot_matrix_to)
-        self._rot_matrix_from.flags.writeable = False
-        self._rot_matrix_to.flags.writeable = False
+            angle = Rotor._normalize_angle_deg(angle)
+            if almost_equal(angle, 0):
+                continue
 
+            if result_axes_names and result_axes_names[-1] == name:
+                new_angle = Rotor._normalize_angle_deg(
+                    result_angles_deg[-1] + angle)
 
-class RotorZ(Rotor):
-    def __init__(self, angle_deg):
-        self._rot_axes_ids = ('Z',)
-        self._rot_angles_deg = (angle_deg,)
-        c, s = cos_sin_deg(angle_deg)
-        self._rot_matrix_to = np.array(
-            [[c, -s, 0.0],
-             [s, c, 0.0],
-             [0.0, 0.0, 1.0]])
-        self._rot_matrix_from = np.transpose(self._rot_matrix_to)
-        self._rot_matrix_from.flags.writeable = False
-        self._rot_matrix_to.flags.writeable = False
+                if almost_equal(new_angle, 0):
+                    result_axes_names.pop()
+                    result_angles_deg.pop()
+                else:
+                    result_axes_names[-1] = name
+                    result_angles_deg[-1] = new_angle
+            else:
+                result_axes_names.append(name)
+                result_angles_deg.append(angle)
+
+        return result_axes_names, result_angles_deg

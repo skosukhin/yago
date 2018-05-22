@@ -27,22 +27,13 @@ class Projection(object):
         """
         raise NotImplementedError()
 
-    @classmethod
-    def build_rotor(cls, center_lat, center_lon, z_angle):
+    @property
+    def reference_point(self):
         """
-        Creates an instance of the class Rotor that represents a sequence of
-        rotations that must be applied to allow for the following projection
-        of a particular region of the globe. The rotations shift a given point
-        to the center of the projection, and includes an optional rotation that
-        allows for adjustment of the orientation of the projection plane's axes
-        with respect to the surface.
-        :param center_lat: Latitude of the projection's center (in degrees).
-        :param center_lon: Longitude of the projection's center (in degrees).
-        :param z_angle: Angle of the optional rotation around Z-axis
-        (in degrees).
-        :return: Instance of the class Rotor that represents a sequence of
-        rotations of the geographical coordinate system to be applied prior
-        projection transformations.
+        Returns geographical coordinates of the reference point of the
+        projection.
+        :return: Tuple of latitude and longitude (in degrees) of the reference
+        point.
         """
         raise NotImplementedError()
 

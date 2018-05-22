@@ -4,6 +4,7 @@ import numpy as np
 
 from core.projections import projections
 from core.projections.converter import Converter
+from core.projections.rotor import Rotor
 from core.projections.translator import Translator
 
 
@@ -83,8 +84,14 @@ def parse_slice(string):
 
 def init_converter_from_args(args):
     proj_cls = projections[args.proj_name]
+
     p = proj_cls.unified_init(args.earth_radius, args.true_scale_lats)
-    r = proj_cls.build_rotor(args.orig_lat, args.orig_lon, args.adjust_angle)
+
+    ref_lat, ref_lon = p.reference_point
+    r = Rotor.build_rotor(args.orig_lat, args.orig_lon,
+                          ref_lat, ref_lon,
+                          args.adjust_angle)
+
     t = Translator(args.easting, args.northing)
 
     return Converter(r, p, t)

@@ -10,11 +10,10 @@ from core.grids.rectilinear import RectilinearGrid
 from core.grids.structured import StructuredGrid
 from core.projections import projections
 from core.projections.converter import Converter
-from core.projections.rotors import Rotor, RotorX, RotorY, RotorZ
-
-# Maximum number of dimensions to copy during one read/write operation
+from core.projections.rotor import Rotor
 from core.projections.translator import Translator
 
+# Maximum number of dimensions to copy during one read/write operation
 MAX_COPY_DIM_COUNT = 2
 
 
@@ -172,7 +171,8 @@ def gen_hist_string(ignored_args=None):
 
 
 def init_converter_from_proj_var(proj_var):
-    r = _decode_rotor(proj_var.rot_axes, proj_var.rot_angles_deg)
+    rot_angles_deg = np.atleast_1d(proj_var.rot_angles_deg)
+    r = Rotor(proj_var.rot_axes, rot_angles_deg, False)
 
     standard_parallel_list = np.atleast_1d(proj_var.standard_parallel)
     p = projections[proj_var.short_name].unified_init(proj_var.earth_radius,
@@ -245,18 +245,3 @@ def init_grid_from_vars(x_var, y_var):
     else:
         return RectilinearGrid(x=x_var[:], y=y_var[:], copy_values=False), \
                y_var.dimensions + x_var.dimensions
-
-
-def _decode_rotor(rot_axes_ids, rot_angles_deg):
-    rotors = []
-    for i, c in enumerate(rot_axes_ids):
-        angle = rot_angles_deg[i]
-        if c == 'X':
-            rotors.append(RotorX(angle))
-        elif c == 'Y':
-            rotors.append(RotorY(angle))
-        elif c == 'Z':
-            rotors.append(RotorZ(angle))
-        else:
-            raise Exception('Unknown rotation axis ID: \'' + c + '\'.')
-    return Rotor.chain(*rotors)

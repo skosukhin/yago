@@ -2,7 +2,6 @@ import numpy as np
 
 from core.common import cos_sin_deg, HALF_PI, rotate_vectors_deg
 from core.projections.projection import Projection
-from core.projections.rotors import Rotor, RotorZ, RotorY
 
 
 class PolarStereographicProjection(Projection):
@@ -40,11 +39,9 @@ class PolarStereographicProjection(Projection):
 
         return PolarStereographicProjection(true_lats[0], earth_radius)
 
-    @classmethod
-    def build_rotor(cls, center_lat, center_lon, z_angle):
-        return Rotor.chain(RotorZ(180.0 - center_lon),
-                           RotorY(90.0 - center_lat),
-                           RotorZ(z_angle))
+    @property
+    def reference_point(self):
+        return 90.0, 0.0
 
     def convert_points(self, lats, lons):
         c_lats, s_lats = cos_sin_deg(lats)

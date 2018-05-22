@@ -52,6 +52,8 @@ def apply_rot_matrices(uu, vv, rot_matrices):
     :param rot_matrices: Rotation matrices.
     :return: Tuple of scalars or arrays of components of the rotated vectors.
     """
+    uu = np.asanyarray(uu)
+    vv = np.asanyarray(vv)
     stacked = np.ma.concatenate([uu[np.newaxis, ...], vv[np.newaxis, ...]])
     rot_vecs = np.einsum('ij...,j...', rot_matrices, stacked)
 

@@ -2,7 +2,6 @@ import numpy as np
 
 from core.common import almost_equal
 from core.projections.projection import Projection
-from core.projections.rotors import Rotor, RotorZ, RotorY
 
 
 class SinusoidalProjection(Projection):
@@ -47,12 +46,9 @@ class SinusoidalProjection(Projection):
 
         return SinusoidalProjection(earth_radius)
 
-    @classmethod
-    def build_rotor(cls, orig_lat, orig_lon, add_angle_deg):
-        return Rotor.chain(RotorZ(180.0 - orig_lon),
-                           RotorY(90.0 - orig_lat),
-                           RotorZ(add_angle_deg),
-                           RotorY(90.0))
+    @property
+    def reference_point(self):
+        return 0.0, 0.0
 
     def convert_points(self, lats, lons):
         lats_rad = np.radians(lats)

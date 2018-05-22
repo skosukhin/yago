@@ -2,7 +2,6 @@ import numpy as np
 
 from core.common import HALF_PI, rotate_vectors_deg, almost_equal
 from core.projections.projection import Projection
-from core.projections.rotors import Rotor, RotorZ, RotorY
 
 
 class LambertConformalProjection(Projection):
@@ -17,6 +16,7 @@ class LambertConformalProjection(Projection):
     """
 
     _CENTER_LAT = 45.0
+    _CENTER_LON = 0.0
     short_name = 'lambert'
     long_name = 'Lambert conformal conic'
     standard_name = 'lambert_conformal_conic'
@@ -72,12 +72,10 @@ class LambertConformalProjection(Projection):
         return LambertConformalProjection(true_lats[0], true_lats[1],
                                           earth_radius)
 
-    @classmethod
-    def build_rotor(cls, orig_lat, orig_lon, add_angle_deg):
-        return Rotor.chain(RotorZ(180.0 - orig_lon),
-                           RotorY(90.0 - orig_lat),
-                           RotorZ(add_angle_deg),
-                           RotorY(45.0))
+    @property
+    def reference_point(self):
+        return (LambertConformalProjection._CENTER_LAT,
+                LambertConformalProjection._CENTER_LON)
 
     def convert_points(self, lats, lons):
         xx_unitless, yy_unitless = self._convert_to_unitless(lats, lons)
@@ -119,9 +117,11 @@ class LambertConformalProjection(Projection):
         rho = (self._f *
                np.power(np.tan((HALF_PI + np.radians(lats)) / 2.0), -self._n))
 
-        nlo = self._n * np.radians(lons)
-        x = rho * np.sin(nlo)
-        y = self._rho0 - rho * np.cos(nlo)
+        theta = (self._n *
+                 np.radians(lons - LambertConformalProjection._CENTER_LON))
+
+        x = rho * np.sin(theta)
+        y = self._rho0 - rho * np.cos(theta)
         return x, y
 
     def _restore_from_unitless(self, xx, yy):
@@ -134,4 +134,5 @@ class LambertConformalProjection(Projection):
                 HALF_PI)
 
         lons = theta / self._n
-        return np.degrees(lats), np.degrees(lons)
+        return (np.degrees(lats),
+                np.degrees(lons) + LambertConformalProjection._CENTER_LON)

@@ -24,10 +24,10 @@ For Lambert:
 --true-scale-lats=33.9172241958,54.4707286812
 
 Example commands:
-gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=stereo --true-scale-lats=71.6577131288 --output-file=grid_stereo.nc --output-format=nc
-gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=mercator --true-scale-lats=10.6352550282 --output-file=grid_mercator.nc  --output-format=nc
-gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=lambert --true-scale-lats=33.9172241958;54.4707286812 --output-file=grid_lambert.nc  --output-format=nc
-gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=sinus --output-file=grid_sinus.nc  --output-format=nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=stereo --true-scale-lats=71.6577131288 --output-file=grid_stereo.nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=mercator --true-scale-lats=10.6352550282 --output-file=grid_mercator.nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=lambert --true-scale-lats=33.9172241958;54.4707286812 --output-file=grid_lambert.nc
+gengrid --x-start=-2695000.0 --x-count=386 --x-step=14000.0 --y-start=-2331000.0 --y-count=334 --y-step=14000.0 --orig-lat=88.9899731326 --orig-lon=-129.805571092 --adjust-angle=-39.805571092 --proj-name=sinus --output-file=grid_sinus.nc
 """
 
 import re
@@ -168,7 +168,7 @@ def cmd(args):
     proj_var.latitude_of_projection_origin = args.orig_lat
     proj_var.longitude_of_projection_origin = args.orig_lon
     proj_var.standard_parallel = converter.projection.true_scale_lats
-    proj_var.rot_axes = converter.rotor.rot_axes_ids
+    proj_var.rot_axes = converter.rotor.rot_axes_names
     proj_var.rot_angles_deg = converter.rotor.rot_angles_deg
     proj_var.short_name = converter.projection.short_name
     proj_var.false_easting = converter.translator.easting
